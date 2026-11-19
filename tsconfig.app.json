@@ -21,6 +21,6 @@
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/App.tsx", "src/lib/api.ts", "src/main.tsx", "src/index.css"],
+  "include": ["src/App.tsx", "src/lib/api.ts", "src/main.tsx", "src/index.css", "src/vite-env.d.ts"],
   "exclude": ["src/convex", "src/pages", "src/components", "src/hooks", "vly-toolbar-readonly.tsx"]
 }
