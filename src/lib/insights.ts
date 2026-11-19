@@ -190,11 +190,16 @@ export function deriveNotifications(input: {
       tone: "info",
     });
   }
-  const unchecked = input.projects.filter(
-    (p) =>
-      p.repoUrl &&
-      !input.repoChecks.some((c) => c.repoUrl === p.repoUrl && c.status === "verified"),
-  );
+  const normaliseUrl = (value: string) => value.trim().replace(/\/+$/, "").toLowerCase();
+  const unchecked = input.projects.filter((project) => {
+    const url = project.repoUrl;
+    if (!url) return false;
+    return !input.repoChecks.some(
+      (check) =>
+        normaliseUrl(check.repoUrl) === normaliseUrl(url) &&
+        check.status === "verified",
+    );
+  });
   if (unchecked.length > 0) {
     items.push({
       id: "repo-unchecked",
@@ -297,7 +302,7 @@ export function buildProgressReport(input: ReportInput) {
     for (const check of verifiedRepos) {
       const report = check.report as RepoReport | undefined;
       lines.push(
-        `- ${check.repoUrl} — read ${formatDate(check.fetchedAt, true)}${report ? ` · ${report.commitSampleSize} commits sampled · ${report.fileCount} files fingerprinted` : ""}`,
+        `- ${check.repoUrl} — read ${formatDate(check.fetchedAt, true)}${report ? ` · ${report.commitSampleSize} commits sampled${report.treeAvailable ? ` · ${report.fileCount} files fingerprinted` : " · file tree not read"}` : ""}`,
       );
     }
   }

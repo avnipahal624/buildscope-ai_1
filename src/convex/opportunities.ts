@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { DEMO_OPPORTUNITIES } from "./catalog";
-import { logActivity } from "./lib";
+import { logActivity, sanitize } from "./lib";
 
 export const ensureCatalog = mutation({
   args: {},
@@ -10,7 +10,7 @@ export const ensureCatalog = mutation({
     const existing = await ctx.db.query("opportunities").first();
     if (existing) return { seeded: false };
     for (const record of DEMO_OPPORTUNITIES) {
-      await ctx.db.insert("opportunities", record);
+      await ctx.db.insert("opportunities", sanitize(record));
     }
     return { seeded: true, count: DEMO_OPPORTUNITIES.length };
   },

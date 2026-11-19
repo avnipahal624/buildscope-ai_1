@@ -187,13 +187,32 @@ export function AppShell() {
   const roadmap = useQuery(api.roadmap.state);
   const repoChecks = useQuery(api.projects.repoCheckList);
 
-  const notifications = deriveNotifications({
+  const derived = deriveNotifications({
     saved: savedRows ?? [],
     tasks: roadmap?.tasks ?? [],
     projects: (projects ?? []).map((entry) => entry.project),
     repoChecks: repoChecks ?? [],
     onboardingComplete: user?.onboardingComplete,
   });
+  const filteredNotifications = derived.filter((item) => {
+    if (user?.notificationPrefs?.deadlines === false && item.id.startsWith("deadline-"))
+      return false;
+    if (user?.notificationPrefs?.roadmap === false && item.id.startsWith("task-"))
+      return false;
+    return true;
+  });
+  const notifications =
+    filteredNotifications.length > 0
+      ? filteredNotifications
+      : [
+          {
+            id: "prefs-quiet",
+            title: "No signals with these preferences",
+            detail: "Deadline and roadmap reminders are switched off in Settings.",
+            href: "/settings",
+            tone: "success" as const,
+          },
+        ];
 
   // Seed the clearly-labelled demonstration catalogue exactly once per session.
   useEffect(() => {

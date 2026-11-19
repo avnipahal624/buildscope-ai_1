@@ -24,12 +24,15 @@ export async function logActivity(
   userId: Id<"users">,
   entry: { kind: string; title: string; detail?: string; href?: string },
 ) {
-  await ctx.db.insert("activities", {
-    userId,
-    kind: entry.kind,
-    title: entry.title,
-    detail: entry.detail,
-    href: entry.href,
-    createdAt: Date.now(),
-  });
+  await ctx.db.insert(
+    "activities",
+    sanitize({
+      userId,
+      kind: entry.kind,
+      title: entry.title,
+      detail: entry.detail,
+      href: entry.href,
+      createdAt: Date.now(),
+    }),
+  );
 }

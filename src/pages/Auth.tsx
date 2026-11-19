@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
+import { useLightTheme } from "@/hooks/use-light-theme";
 import { ArrowRight, ArrowUpRight, Loader2, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -22,6 +23,7 @@ function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/dashboar
 }
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
+  useLightTheme();
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

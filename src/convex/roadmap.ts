@@ -70,15 +70,18 @@ export const setTarget = mutation({
     for (const target of existing) {
       if (target.active) await ctx.db.patch(target._id, { active: false });
     }
-    const targetId = await ctx.db.insert("roadmapTargets", {
-      userId,
-      label: args.label,
-      type: args.type,
-      referenceId: args.referenceId,
-      requiredSkills: args.requiredSkills,
-      active: true,
-      createdAt: Date.now(),
-    });
+    const targetId = await ctx.db.insert(
+      "roadmapTargets",
+      sanitize({
+        userId,
+        label: args.label,
+        type: args.type,
+        referenceId: args.referenceId,
+        requiredSkills: args.requiredSkills,
+        active: true,
+        createdAt: Date.now(),
+      }),
+    );
     await logActivity(ctx, userId, {
       kind: "roadmap",
       title: `Set roadmap target: ${args.label}`,

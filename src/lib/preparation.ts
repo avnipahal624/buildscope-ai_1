@@ -114,7 +114,9 @@ export function computePreparation(input: {
   const totalWeight = components.reduce((sum, c) => sum + c.weight, 0);
   const score = hasData
     ? Math.round(
-        components.reduce((sum, c) => sum + c.value * c.weight, 0) / totalWeight,
+        (components.reduce((sum, c) => sum + c.value * c.weight, 0) /
+          totalWeight) *
+          100,
       )
     : null;
 

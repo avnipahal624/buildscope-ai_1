@@ -122,6 +122,12 @@ export const analyzeRepo = action({
         `/repos/${owner}/${name}/git/trees/${repo.default_branch}?recursive=1`,
       ).catch(() => null);
       const treeEntries: any[] = tree?.tree ?? [];
+      const treeAvailable = Boolean(tree);
+      if (!treeAvailable) {
+        limitations.push(
+          "The repository file tree could not be read, so README, structure, workflow and file-fingerprint evidence is reported as Not assessed.",
+        );
+      }
       const fileFingerprints = treeEntries
         .filter((entry) => entry.type === "blob")
         .slice(0, 400)
@@ -221,6 +227,7 @@ export const analyzeRepo = action({
           const candidateTree = await gh(
             `/repos/${candidateOwner}/${candidateName}/git/trees/${candidate.default_branch}?recursive=1`,
           ).catch(() => null);
+          const candidateTreeRead = Boolean(candidateTree);
           const candidateBlobs: string[] = (candidateTree?.tree ?? [])
             .filter((entry: any) => entry.type === "blob")
             .map((entry: any) => entry.sha);
@@ -247,6 +254,7 @@ export const analyzeRepo = action({
             license: candidateLicense,
             conceptSimilarity: concept,
             sharedBlobFiles: sharedShas.length,
+            candidateTreeRead,
             sharedFilePaths: sharedShas
               .map((sha) => candidateBySha.get(sha))
               .filter((path): path is string => Boolean(path))
@@ -320,6 +328,7 @@ export const analyzeRepo = action({
         commitsPerWeek,
         lastCommitAt: recentCommits[0]?.date ?? null,
         recentCommits,
+        treeAvailable,
         readmePresent: Boolean(readmeEntry),
         readmePath: readmeEntry?.path ?? null,
         releases: Array.isArray(releases) ? releases.length : 0,

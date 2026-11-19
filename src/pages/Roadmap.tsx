@@ -54,7 +54,7 @@ import { BookScene, CubeScene } from "@/components/decor/Scenes";
 
 const STAGE_TONE: Record<string, string> = {
   foundation: "border-sage-deep/60 bg-sage/35",
-  intermediate: "border-[#E3CDA1]/60 bg-[#F0E3C8]/45",
+  intermediate: "border-gold/40 bg-gold/25",
   application: "border-peach-deep/60 bg-peach/35",
   "project-ready": "border-lavender-deep/60 bg-lavender/35",
 };
@@ -245,7 +245,7 @@ export default function Roadmap() {
         label,
         type: targetMode,
         referenceId,
-        requiredSkills,
+        requiredSkills: requiredSkills.map((skill) => canonicalSkill(skill)),
       });
       const drafts = generateRoadmap(requiredSkills, user?.skills);
       await addTasks({ targetId, tasks: drafts });
@@ -322,7 +322,7 @@ export default function Roadmap() {
             </div>
 
             {activeTarget && gaps.length > 0 && (
-              <div className="mt-3 rounded-xl border border-peach-deep/40 bg-peach/25 px-3 py-2 text-[0.7rem] leading-5 text-[#7A4A32]">
+              <div className="mt-3 rounded-xl border border-peach-deep/40 bg-peach/25 px-3 py-2 text-[0.7rem] leading-5 text-forest">
                 <span className="font-semibold">{gaps.length} skill gap{gaps.length === 1 ? "" : "s"}:</span>{" "}
                 {gaps.join(", ")}. {tasks.length === 0 ? "Generate tasks to close them." : "Your roadmap below targets them in priority order."}
               </div>
@@ -420,9 +420,9 @@ export default function Roadmap() {
                                 className={cn(
                                   "ml-auto rounded-full px-1.5 py-0.5 text-[0.52rem] font-semibold uppercase tracking-[0.06em]",
                                   task.priority === "high"
-                                    ? "bg-peach text-[#7A4A32]"
+                                    ? "bg-peach text-forest"
                                     : task.priority === "medium"
-                                      ? "bg-[#F0E3C8] text-[#6B5424]"
+                                      ? "bg-gold/45 text-forest"
                                       : "bg-cream text-muted-foreground",
                                 )}
                               >
@@ -484,30 +484,42 @@ export default function Roadmap() {
 
         <aside className="space-y-4">
           <SectionCard title="Skill comparison" icon={Target}>
-            {activeTarget ? (
-              <div className="space-y-2 text-[0.7rem]">
-                <div>
-                  <p className="label-caps mb-1 text-forest/45">You already have</p>
-                  <div className="flex flex-wrap gap-1">
-                    {covered.length > 0 ? covered.map((skill) => <Tag key={skill} tone="sage">{skill}</Tag>) : <span className="text-muted-foreground">None of the required skills yet.</span>}
-                  </div>
+            <div className="space-y-2 text-[0.7rem]">
+              <div>
+                <p className="label-caps mb-1 text-forest/45">Your current skills</p>
+                <div className="flex flex-wrap gap-1">
+                  {(user?.skills ?? []).length > 0 ? (
+                    (user?.skills ?? []).slice(0, 10).map((skill) => <Tag key={skill} tone="cream">{skill}</Tag>)
+                  ) : (
+                    <span className="text-muted-foreground">No skills listed yet. Add them in your profile.</span>
+                  )}
                 </div>
-                <div>
-                  <p className="label-caps mb-1 text-forest/45">Skills to improve / missing</p>
-                  <div className="flex flex-wrap gap-1">
-                    {gaps.length > 0 ? gaps.map((skill) => <Tag key={skill} tone="peach">{skill}</Tag>) : <Tag tone="sage">No gaps for this target</Tag>}
-                  </div>
-                </div>
-                <p className="flex items-start gap-1.5 rounded-lg bg-cream/60 px-2 py-1.5 text-[0.6rem] leading-4 text-forest/55">
-                  <TriangleAlert className="mt-0.5 size-3 shrink-0" aria-hidden />
-                  Skills are matched by name. Having a skill on your profile is not a claim of mastery.
-                </p>
               </div>
-            ) : (
-              <p className="text-[0.72rem] leading-5 text-muted-foreground">
-                Set a target to see the difference between what it asks for and what you already list.
+              {activeTarget ? (
+                <>
+                  <div>
+                    <p className="label-caps mb-1 text-forest/45">Covered by this target</p>
+                    <div className="flex flex-wrap gap-1">
+                      {covered.length > 0 ? covered.map((skill) => <Tag key={skill} tone="sage">{skill}</Tag>) : <span className="text-muted-foreground">None of the required skills yet.</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="label-caps mb-1 text-forest/45">Skills to improve / missing</p>
+                    <div className="flex flex-wrap gap-1">
+                      {gaps.length > 0 ? gaps.map((skill) => <Tag key={skill} tone="peach">{skill}</Tag>) : <Tag tone="sage">No gaps for this target</Tag>}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[0.72rem] leading-5 text-muted-foreground">
+                  Set a target to see the difference between what it asks for and what you already list.
+                </p>
+              )}
+              <p className="flex items-start gap-1.5 rounded-lg bg-cream/60 px-2 py-1.5 text-[0.6rem] leading-4 text-forest/55">
+                <TriangleAlert className="mt-0.5 size-3 shrink-0" aria-hidden />
+                Skills are matched by name. Having a skill on your profile is not a claim of mastery.
               </p>
-            )}
+            </div>
           </SectionCard>
 
           <SectionCard title="Learning resources" icon={BookOpen}>

@@ -291,17 +291,20 @@ export const saveRepoCheck = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    const checkId = await ctx.db.insert("repoChecks", {
-      userId,
-      projectId: args.projectId,
-      repoUrl: args.repoUrl,
-      owner: args.owner,
-      repoName: args.repoName,
-      status: args.status,
-      report: sanitize(args.report),
-      error: args.error,
-      fetchedAt: Date.now(),
-    });
+    const checkId = await ctx.db.insert(
+      "repoChecks",
+      sanitize({
+        userId,
+        projectId: args.projectId,
+        repoUrl: args.repoUrl,
+        owner: args.owner,
+        repoName: args.repoName,
+        status: args.status,
+        report: sanitize(args.report),
+        error: args.error,
+        fetchedAt: Date.now(),
+      }),
+    );
     if (args.projectId) {
       const project = await ctx.db.get(args.projectId);
       if (project && project.userId === userId) {

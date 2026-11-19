@@ -1,9 +1,11 @@
+import { useLightTheme } from "@/hooks/use-light-theme";
 import { ArrowLeft, Compass } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { CompassStar } from "@/components/decor/Scenes";
 
 export default function NotFound() {
+  useLightTheme();
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ivory px-4 py-16">
       <div className="absolute inset-0 grain opacity-60" aria-hidden />

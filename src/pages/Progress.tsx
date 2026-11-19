@@ -443,15 +443,28 @@ export default function Progress() {
           ) : (
             <>
               <div className="mb-3 flex items-center gap-2">
-                {overview.repoChecks.slice(0, 6).reverse().map((check) => (
-                  <div key={check._id} className="flex-1" title={`${check.owner}/${check.repoName}`}>
+                {overview.repoChecks.slice(0, 6).reverse().map((check) => {
+                  const sample = (check.report as { commitSampleSize?: number } | null)
+                    ?.commitSampleSize;
+                  return (
                     <div
-                      className="rounded-t bg-forest/60"
-                      style={{ height: Math.max(8, Math.min(56, Number((check.report as { commitSampleSize?: number } | null)?.commitSampleSize ?? 8) * 1.6)) }}
-                    />
-                    <p className="mt-1 truncate text-center text-[0.5rem] text-muted-foreground">{check.repoName}</p>
-                  </div>
-                ))}
+                      key={check._id}
+                      className="flex-1"
+                      title={`${check.owner}/${check.repoName}${sample === undefined ? " · not assessed" : ` · ${sample} commits sampled`}`}
+                    >
+                      <div
+                        className={cn("rounded-t", sample === undefined ? "bg-forest/20" : "bg-forest/60")}
+                        style={{
+                          height:
+                            sample === undefined
+                              ? 6
+                              : Math.max(8, Math.min(56, sample * 1.6)),
+                        }}
+                      />
+                      <p className="mt-1 truncate text-center text-[0.5rem] text-muted-foreground">{check.repoName}</p>
+                    </div>
+                  );
+                })}
               </div>
               <ul className="divide-y divide-border/60">
                 {overview.repoChecks.slice(0, 4).map((check) => (

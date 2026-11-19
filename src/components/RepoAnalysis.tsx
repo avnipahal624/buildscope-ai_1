@@ -84,9 +84,13 @@ function Provenance({ report }: { report: RepoReport }) {
             Identical git blob SHA-1 fingerprints among up to three candidates.
           </p>
           <p className="tnum mt-2 font-display text-xl text-forest">
-            {report.related.reduce((sum, item) => sum + item.sharedBlobFiles, 0)}
+            {report.treeAvailable
+              ? report.related.reduce((sum, item) => sum + item.sharedBlobFiles, 0)
+              : "—"}
           </p>
-          <p className="text-[0.6rem] text-muted-foreground">shared files detected</p>
+          <p className="text-[0.6rem] text-muted-foreground">
+            {report.treeAvailable ? "shared files detected" : "not assessed"}
+          </p>
         </div>
         <div className="rounded-xl border border-border/70 bg-card p-3">
           <p className="label-caps text-forest/50">Repository ancestry</p>
@@ -136,7 +140,9 @@ function Provenance({ report }: { report: RepoReport }) {
                     )}
                   </td>
                   <td className="tnum px-3 py-2.5">{item.conceptSimilarity}%</td>
-                  <td className="tnum px-3 py-2.5">{item.sharedBlobFiles}</td>
+                  <td className="tnum px-3 py-2.5">
+                    {item.candidateTreeRead ? item.sharedBlobFiles : "n/a"}
+                  </td>
                   <td className="px-3 py-2.5">
                     <span className="block">{item.license ?? "Not detected"}</span>
                     <span className="text-[0.6rem] text-muted-foreground">
@@ -247,21 +253,57 @@ export function RepoAnalysis({
 
   const saveToLibrary = async () => {
     if (!report) return;
-    await addLibraryItem({
-      title: `Repository report — ${report.owner}/${report.name}`,
-      description: `${report.commitSampleSize} commits sampled · ${report.fileCount} files fingerprinted · ${report.related.length} related repositories`,
-      kind: "repo-report",
-      url: report.repoUrl,
-      payload: {
-        owner: report.owner,
-        name: report.name,
-        stars: report.stars,
-        license: report.license,
-        checkedAt: report.checkedAt,
-        relatedCount: report.related.length,
-      },
-    });
-    toast.success("Repository report saved to your library.");
+    const markdown = [
+      `# Repository report — ${report.owner}/${report.name}`,
+      "",
+      report.repoUrl,
+      `Checked ${formatDate(report.checkedAt, true)} via the GitHub REST API.`,
+      "",
+      "## Repository signals",
+      `- Description: ${report.description ?? "none"}`,
+      `- Stars: ${report.stars} · forks: ${report.forks} · open issues: ${report.openIssues}`,
+      `- Commits sampled: ${report.commitSampleSize} (about ${report.commitsPerWeek}/week over eight weeks)`,
+      `- Branches: ${report.branchCount} · releases: ${report.releases}`,
+      `- Licence: ${report.license ?? "not detected"}`,
+      `- README: ${report.treeAvailable ? (report.readmePresent ? report.readmePath : "not found") : "not assessed"}`,
+      `- Files fingerprinted: ${report.treeAvailable ? report.fileCount : "not assessed"}`,
+      `- Workflow files: ${report.treeAvailable ? (report.hasWorkflows ? report.workflowFiles.length : 0) : "not assessed"}`,
+      "",
+      "## Provenance (separate concepts)",
+      `- Fork relationship: ${report.isFork ? `fork of ${report.parent ?? "unknown"}` : "none reported"}`,
+      `- Related public repositories assessed: ${report.related.length}`,
+      ...report.related.map(
+        (item) =>
+          `- ${item.fullName}: concept overlap ${item.conceptSimilarity}%, exact file fingerprints ${item.candidateTreeRead ? item.sharedBlobFiles : "not assessed"}, licence ${item.license ?? "not detected"} (${item.licenceComparison})`,
+      ),
+      "- Normalised code similarity: Not assessed (not implemented)",
+      "- AST structural similarity: Not assessed (not implemented)",
+      "",
+      "## Limitations",
+      ...report.limitations.map((limitation) => `- ${limitation}`),
+      "",
+      "_Similarity is context, not a verdict. BuildScope does not call a repository stolen._",
+    ].join("\n");
+    try {
+      await addLibraryItem({
+        title: `Repository report — ${report.owner}/${report.name}`,
+        description: `${report.commitSampleSize} commits sampled · ${report.treeAvailable ? `${report.fileCount} files fingerprinted` : "file tree not read"} · ${report.related.length} related repositories`,
+        kind: "repo-report",
+        url: report.repoUrl,
+        payload: {
+          markdown,
+          owner: report.owner,
+          name: report.name,
+          stars: report.stars,
+          license: report.license,
+          checkedAt: report.checkedAt,
+          relatedCount: report.related.length,
+        },
+      });
+      toast.success("Repository report saved to your library.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the report.");
+    }
   };
 
   return (
@@ -358,7 +400,7 @@ export function RepoAnalysis({
             <Metric label="Forks" value={report.forks} icon={GitBranch} />
             <Metric label="Commits sampled" value={report.commitSampleSize} icon={GitCommitHorizontal} />
             <Metric label="Commits / week" value={report.commitsPerWeek} icon={GitCommitHorizontal} />
-            <Metric label="Files fingerprinted" value={report.fileCount} icon={FileCode2} />
+            <Metric label="Files fingerprinted" value={report.treeAvailable ? report.fileCount : "—"} icon={FileCode2} />
             <Metric label="Branches" value={report.branchCount} icon={GitBranch} />
             <Metric label="Releases" value={report.releases} icon={Package} />
             <Metric label="Open issues" value={report.openIssues} icon={CircleDot} />
@@ -432,9 +474,9 @@ export function RepoAnalysis({
           <SectionCard title="Repository structure & signals" icon={FileCode2} bodyClassName="pt-0">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "README", value: report.readmePresent ? report.readmePath ?? "Present" : "Not found", ok: report.readmePresent },
+                { label: "README", value: !report.treeAvailable ? "Not assessed" : report.readmePresent ? report.readmePath ?? "Present" : "Not found", ok: report.readmePresent },
                 { label: "Licence", value: report.license ?? "Not detected", ok: Boolean(report.license) },
-                { label: "Workflows", value: report.hasWorkflows ? `${report.workflowFiles.length} file(s)` : "None found", ok: report.hasWorkflows },
+                { label: "Workflows", value: !report.treeAvailable ? "Not assessed" : report.hasWorkflows ? `${report.workflowFiles.length} file(s)` : "None found", ok: report.hasWorkflows },
                 { label: "Latest release", value: report.latestRelease ?? "None", ok: Boolean(report.latestRelease) },
               ].map((item) => (
                 <div key={item.label} className="rounded-lg border border-border/70 bg-cream/30 px-3 py-2">
@@ -448,11 +490,17 @@ export function RepoAnalysis({
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
                 <p className="label-caps mb-1 text-forest/45">Root structure (first 20 entries)</p>
-                <ul className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg bg-cream/30 p-2 font-mono text-[0.65rem] text-forest/70">
-                  {report.structure.slice(0, 20).map((entry) => (
-                    <li key={entry.path}>{entry.type === "tree" ? "▸ " : "· "}{entry.path}</li>
-                  ))}
-                </ul>
+                {!report.treeAvailable ? (
+                  <p className="rounded-lg bg-cream/30 p-2 text-[0.68rem] text-muted-foreground">
+                    File tree not read — structure is not assessed.
+                  </p>
+                ) : (
+                  <ul className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg bg-cream/30 p-2 font-mono text-[0.65rem] text-forest/70">
+                    {report.structure.slice(0, 20).map((entry) => (
+                      <li key={entry.path}>{entry.type === "tree" ? "▸ " : "· "}{entry.path}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div>
                 <p className="label-caps mb-1 text-forest/45">Workflow files</p>

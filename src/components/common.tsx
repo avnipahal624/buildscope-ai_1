@@ -24,7 +24,7 @@ const TONE_BG: Record<Tone, string> = {
   sage: "bg-sage/70",
   peach: "bg-peach/70",
   lavender: "bg-lavender/70",
-  gold: "bg-[#F0E3C8]",
+  gold: "bg-gold/45",
   cream: "bg-cream",
   forest: "bg-forest text-ivory",
 };
@@ -188,7 +188,7 @@ export function ScoreRing({
 const DATA_LABEL: Record<string, { label: string; className: string; note: string }> = {
   demo: {
     label: "Demo data",
-    className: "bg-peach/60 text-[#7A4A32]",
+    className: "bg-peach/60 text-forest",
     note: "Demonstration record — not a live listing.",
   },
   live: {
@@ -227,10 +227,10 @@ export function DataBadge({
 
 const STATUS_CLASS: Record<EvidenceStatus, string> = {
   Verified: "bg-sage text-[#1B4A2F]",
-  "Evidence found": "bg-[#F0E3C8] text-[#6B5424]",
-  "Needs review": "bg-peach text-[#7A4A32]",
+  "Evidence found": "bg-gold/50 text-forest",
+  "Needs review": "bg-peach text-forest",
   "Not assessed": "bg-cream text-muted-foreground",
-  "Unable to verify": "bg-[#EFD9D2] text-[#7A3B2C]",
+  "Unable to verify": "bg-destructive/10 text-destructive",
 };
 
 export function StatusPill({
@@ -257,7 +257,7 @@ export function StatusPill({
 
 export function MatchBadge({ score, className }: { score: number; className?: string }) {
   const tone =
-    score >= 75 ? "bg-sage text-forest" : score >= 50 ? "bg-[#F0E3C8] text-[#6B5424]" : "bg-cream text-muted-foreground";
+    score >= 75 ? "bg-sage text-forest" : score >= 50 ? "bg-gold/45 text-forest" : "bg-cream text-muted-foreground";
   return (
     <span className={cn("tnum inline-flex items-center rounded-md px-2 py-1 text-[0.68rem] font-semibold", tone, className)}>
       {score}% match

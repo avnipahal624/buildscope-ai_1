@@ -69,6 +69,13 @@ export function OpportunityCard({ opportunity, match, saved, onToggleSave, view 
           ))}
         </div>
 
+        <p className="mt-2 line-clamp-1 text-[0.62rem] text-muted-foreground" title={opportunity.eligibility}>
+          <span className="font-medium text-forest/60">Eligibility:</span> {opportunity.eligibility}
+        </p>
+        <p className="mt-0.5 text-[0.6rem] text-muted-foreground">
+          Event {formatDay(opportunity.startDate)} – {formatDay(opportunity.endDate)} · {opportunity.location}
+        </p>
+
         <dl className="mt-3 grid grid-cols-2 gap-2 text-[0.68rem] text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <CalendarDays className="size-3.5 shrink-0 text-forest/40" aria-hidden />

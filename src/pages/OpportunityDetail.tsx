@@ -25,7 +25,7 @@ import {
   Users,
   Wifi,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ArchScene, CompassStar, Tilt } from "@/components/decor/Scenes";
@@ -55,6 +55,10 @@ export default function OpportunityDetail() {
   const [saving, setSaving] = useState(false);
   const [building, setBuilding] = useState(false);
   const [checked, setChecked] = useState<string[]>([]);
+
+  useEffect(() => {
+    setChecked([]);
+  }, [opportunityId]);
 
   const opportunity = (opportunities ?? []).find((item) => item._id === opportunityId);
   const saved = (savedRows ?? []).some((row) => row.opportunity._id === opportunityId);
@@ -310,7 +314,6 @@ export default function OpportunityDetail() {
             <div className="paper rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 <p className="label-caps text-forest/45">Match</p>
-                <StatusPill status={match.score >= 75 ? "Verified" : "Evidence found"} className="hidden" />
               </div>
               <p className="tnum mt-1 font-display text-5xl leading-none text-forest">
                 {match.score}%

@@ -1,5 +1,6 @@
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useLightTheme } from "@/hooks/use-light-theme";
 import {
   ACADEMIC_YEARS,
   DOMAINS,
@@ -37,6 +38,7 @@ const STEPS = [
 ];
 
 export default function Onboarding() {
+  useLightTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const updateProfile = useMutation(api.profile.update);

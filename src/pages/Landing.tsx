@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useLightTheme } from "@/hooks/use-light-theme";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
@@ -89,6 +90,7 @@ const DEMO_MATCHES = [
 ];
 
 export default function Landing() {
+  useLightTheme();
   const { isAuthenticated } = useAuth();
   const primary = isAuthenticated ? "/dashboard" : "/auth";
   const primaryLabel = isAuthenticated ? "Open your workspace" : "Start your workspace";

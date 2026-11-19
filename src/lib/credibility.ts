@@ -102,13 +102,18 @@ export function checkOpportunity(
         opportunity.registrationDeadline < opportunity.startDate
           ? `Registration closes ${formatDate(opportunity.registrationDeadline)}, before the event starts ${formatDate(opportunity.startDate)}. Internal dates are consistent.`
           : "Registration closes on or after the event start date, which needs a human check.",
+      limitations: isDemo
+        ? "Internal consistency of a demonstration record — not a verified event listing."
+        : undefined,
     },
     {
       id: "eligibility",
       claim: "Eligibility information",
       status: "Evidence found",
       explanation: `Record states: ${opportunity.eligibility}.`,
-      limitations: "Not cross-checked against an official rulebook.",
+      limitations: isDemo
+        ? "Demonstration data. The rule text has no official source behind it."
+        : "Not cross-checked against an official rulebook.",
     },
     {
       id: "registration",
@@ -144,13 +149,17 @@ export function checkOpportunity(
     },
   ];
 
-  const overall = summariseFindings(findings);
+  const withTimestamp = findings.map((finding) => ({
+    ...finding,
+    checkedAt: lastChecked,
+  }));
+  const overall = summariseFindings(withTimestamp);
   return {
     subject: opportunity.name,
     subjectType: "opportunity",
     subjectId: opportunity._id,
     overall,
-    findings,
+    findings: withTimestamp,
     summary: isDemo
       ? "Demonstration record: nothing here should be treated as a live opportunity until an official source is added."
       : overall === "Verified"
@@ -310,10 +319,16 @@ export function checkRepository(report: RepoReport): CredibilityResult {
     {
       id: "readme",
       claim: "README availability",
-      status: report.readmePresent ? "Verified" : "Needs review",
-      explanation: report.readmePresent
-        ? `README found at ${report.readmePath}.`
-        : "No README file was found in the default branch.",
+      status: !report.treeAvailable
+        ? "Not assessed"
+        : report.readmePresent
+          ? "Verified"
+          : "Needs review",
+      explanation: !report.treeAvailable
+        ? "The repository file tree could not be read, so README availability is not assessed."
+        : report.readmePresent
+          ? `README found at ${report.readmePath}.`
+          : "No README file was found in the default branch.",
       evidence: report.readmePresent
         ? [{ label: `${report.repoUrl}#readme`, url: `${report.repoUrl}#readme` }]
         : undefined,
@@ -340,9 +355,11 @@ export function checkRepository(report: RepoReport): CredibilityResult {
       id: "workflows",
       claim: "CI workflow files",
       status: report.hasWorkflows ? "Verified" : "Not assessed",
-      explanation: report.hasWorkflows
-        ? `${report.workflowFiles.length} workflow file(s) detected under .github/workflows.`
-        : "No workflow files detected in the default branch tree.",
+      explanation: !report.treeAvailable
+        ? "The file tree could not be read, so workflow files are not assessed."
+        : report.hasWorkflows
+          ? `${report.workflowFiles.length} workflow file(s) detected under .github/workflows.`
+          : "No workflow files detected in the default branch tree.",
       evidence: report.hasWorkflows
         ? [{ label: "Workflow files", url: `${report.repoUrl}/tree/${report.defaultBranch}/.github/workflows` }]
         : undefined,
@@ -380,12 +397,16 @@ export function checkRepository(report: RepoReport): CredibilityResult {
     {
       id: "file-matching",
       claim: "File-level exact matching",
-      status: report.related.some((item) => item.sharedBlobFiles > 0)
-        ? "Verified"
-        : "Not assessed",
-      explanation: report.related.some((item) => item.sharedBlobFiles > 0)
-        ? `Git blob fingerprints matched ${report.related.filter((item) => item.sharedBlobFiles > 0).length} candidate repositories.`
-        : "No identical git blob fingerprints were found among the candidates checked (up to three).",
+      status: !report.treeAvailable
+        ? "Not assessed"
+        : report.related.some((item) => item.sharedBlobFiles > 0)
+          ? "Verified"
+          : "Not assessed",
+      explanation: !report.treeAvailable
+        ? "No file fingerprints could be computed, so file-level matching is not assessed."
+        : report.related.some((item) => item.sharedBlobFiles > 0)
+          ? `Git blob fingerprints matched ${report.related.filter((item) => item.sharedBlobFiles > 0).length} candidate repositories.`
+          : "No identical git blob fingerprints were found among the candidates checked (up to three).",
       limitations:
         "Only exact blob matches count. Reformatting a file changes its fingerprint.",
     },

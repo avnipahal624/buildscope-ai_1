@@ -190,7 +190,7 @@ export default function Library() {
         description="Saved opportunities, curated learning sources, research notes, repository reports and project reports — searchable and removable."
         actions={
           <>
-            <Button size="sm" onClick={() => setAddOpen(true)} className="rounded-full bg-forest">
+            <Button size="sm" onClick={() => { setError(null); setAddOpen(true); }} className="rounded-full bg-forest">
               <Plus className="size-3.5" aria-hidden /> Add a source
             </Button>
             <span className="rounded-full bg-card px-3 py-1.5 text-xs text-forest/60">
@@ -340,13 +340,17 @@ export default function Library() {
                   type="button"
                   aria-label={`Save ${skill.resourceLabel} to library`}
                   onClick={async () => {
-                    await addItem({
-                      title: skill.resourceLabel ?? skill.name,
-                      description: `${skill.category} · curated source for ${skill.name}`,
-                      kind: "resource",
-                      url: skill.resourceUrl,
-                    });
-                    toast.success("Curated source saved to your library.");
+                    try {
+                      await addItem({
+                        title: skill.resourceLabel ?? skill.name,
+                        description: `${skill.category} · curated source for ${skill.name}`,
+                        kind: "resource",
+                        url: skill.resourceUrl,
+                      });
+                      toast.success("Curated source saved to your library.");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not save the source.");
+                    }
                   }}
                   className="text-forest/40 hover:text-forest"
                 >

@@ -81,10 +81,10 @@ export default function Overview() {
   );
 
   useEffect(() => {
-    if (!overview || recorded.current || prep.score === null) return;
+    if (!user || !overview || recorded.current || prep.score === null) return;
     recorded.current = true;
     void recordSnapshot({ score: prep.score, breakdown: prep.breakdown });
-  }, [overview, prep.score, prep.breakdown, recordSnapshot]);
+  }, [user, overview, prep.score, prep.breakdown, recordSnapshot]);
 
   const delta = snapshotDelta(overview?.snapshots ?? []);
 
@@ -292,7 +292,7 @@ export default function Overview() {
                     <span
                       className={cn(
                         "tnum rounded-full px-2 py-0.5 text-[0.62rem] font-semibold",
-                        delta >= 0 ? "bg-sage text-forest" : "bg-peach text-[#7A4A32]",
+                        delta >= 0 ? "bg-sage text-forest" : "bg-peach text-forest",
                       )}
                     >
                       {delta >= 0 ? "+" : ""}
@@ -356,7 +356,7 @@ export default function Overview() {
             value: doneTasks,
             detail: `${overview.milestones.filter((m) => m.completed).length} milestones complete`,
             icon: CheckCircle2,
-            tone: "bg-[#F0E3C8]",
+            tone: "bg-gold/45",
             href: "/roadmap",
           },
         ].map((metric) => (
@@ -594,9 +594,9 @@ export default function Overview() {
                   days < 0
                     ? "bg-cream text-muted-foreground"
                     : days <= 7
-                      ? "bg-peach text-[#7A4A32]"
+                      ? "bg-peach text-forest"
                       : days <= 21
-                        ? "bg-[#F0E3C8] text-[#6B5424]"
+                        ? "bg-gold/45 text-forest"
                         : "bg-sage text-forest";
                 return (
                   <li key={opportunity._id} className="relative flex items-start gap-2.5">
