@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import * as React from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate, useParams } from "react-router";
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, CircleAlert, Compass, FileCheck2, FolderKanban, FlaskConical, Github, LoaderCircle, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Target, X } from "lucide-react";
 import { api, API_BASE, ApiError } from "@/lib/api";
