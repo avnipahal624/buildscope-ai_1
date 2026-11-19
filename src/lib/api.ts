@@ -29,6 +29,9 @@ export const api = {
   opportunities: (id:string) => request<any[]>(`/api/projects/${id}/opportunities`),
   requirements: (id:string) => request<any[]>(`/projects/${id}/requirements`),
   createRequirement: (id:string,payload:any) => request<any>(`/projects/${id}/requirements`,{method:"POST",body:JSON.stringify(payload)}),
+  generateOpportunityRequirement: (id:string) => request<any>(`/opportunities/${id}/requirement`,{method:"POST"}),
+  verifyRequirement: (id:string) => request<any>(`/requirements/${id}/verify`,{method:"POST"}),
+  opportunityChain: (id:string) => request<any>(`/opportunities/${id}/chain`),
   hackathons: (query:string) => request<any[]>(`/api/hackathons/search?query=${encodeURIComponent(query)}`),
   priorArt: (query:string,limit=10) => request<any>("/api/prior-art/repositories",{method:"POST",body:JSON.stringify({query,limit})}),
 };
