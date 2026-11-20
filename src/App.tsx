@@ -130,6 +130,7 @@ export default function App() {
         onOpenFolios={() => handleNavigate('folios')}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenScreenSwitcher={() => setIsScreenSwitcherOpen(true)}
+        onOpenJournal={() => setIsJournalOpen(true)}
         onOpenContact={() => setIsContactOpen(true)}
         activeFolioTitle={activeFolio.title}
         hardBlockerCount={1}
@@ -245,8 +246,17 @@ export default function App() {
         activeFolio={activeFolio.title}
       />
 
+      <SpatialJournalSidebar
+        isOpen={isJournalOpen}
+        onClose={() => setIsJournalOpen(false)}
+        activeFolioId={activeFolio.id}
+        activeFolioTitle={activeFolio.title}
+        onShowToast={showToast}
+      />
+
       {/* Live Toast Banner */}
       <Toast message={toastMessage} onClear={() => setToastMessage(null)} />
     </div>
   );
 }
+
