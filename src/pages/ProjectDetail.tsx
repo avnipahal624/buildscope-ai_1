@@ -498,3 +498,638 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
           <ResearchJobMonitor jobId={jobId} label="research" onTerminal={() => onReload()} />
         </div>
         <InfoNote tone="peach" className="mt-3">
+          If the job fails or returns partial results, BuildScope does not fill the gaps with fabricated projects.
+        </InfoNote>
+      </SectionCard>
+
+      <SectionCard
+        title="Comparable public projects"
+        icon={Github}
+        action={<span className="text-[0.65rem] text-muted-foreground">{data.similar.length} retrieved</span>}
+      >
+        {data.similar.length === 0 ? (
+          <EmptyState
+            icon={FileSearch}
+            title="No landscape yet"
+            description="Start a research run. When it completes, comparable projects and their source pages appear here."
+          />
+        ) : (
+          <ul className="space-y-2.5">
+            {[...data.similar]
+              .sort((a, b) => b.similarity_score - a.similarity_score)
+              .map((project) => (
+                <SimilarProjectCard
+                  key={project.id}
+                  project={project}
+                  comparison={comparisons.get(project.id)}
+                />
+              ))}
+          </ul>
+        )}
+        <InfoNote tone="cream" className="mt-3">
+          The relevance signal is a ranking aid computed by the backend. It is not an originality
+          score and does not prove that two ideas are the same.
+        </InfoNote>
+      </SectionCard>
+
+      <SectionCard title="Opportunity hypotheses" icon={Lightbulb} eyebrow="Not validated needs">
+        {data.opportunities.length === 0 ? (
+          <EmptyState
+            icon={Lightbulb}
+            title="No opportunities recorded"
+            description="Opportunities come from research gaps and analysed stakeholder needs. They remain hypotheses."
+          />
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {data.opportunities.map((opportunity) => (
+              <li key={opportunity.id} className="rounded-xl border border-border/70 bg-cream/25 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="rounded-full bg-peach/60 px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.08em] text-forest">
+                    {opportunity.origin.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-[0.55rem] uppercase tracking-[0.08em] text-muted-foreground">
+                    hypothesis
+                  </span>
+                </div>
+                <p className="mt-2 text-[0.75rem] font-medium leading-5 text-forest">{opportunity.description}</p>
+                {opportunity.rationale && (
+                  <p className="mt-1 text-[0.64rem] leading-4 text-muted-foreground">{opportunity.rationale}</p>
+                )}
+                <p className="mt-2 text-[0.58rem] text-forest/45">
+                  {opportunity.linked_need_ids.length} linked need(s) · {opportunity.linked_project_ids.length} comparable project(s)
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
+function EvidenceTab({ data, onReload }: { data: Data; onReload: () => void }) {
+  const [stakeholderJobId, rememberStakeholderJob] = useRememberedJob(data.project.id, "stakeholders");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needFilter, setNeedFilter] = useState<string | null>(null);
+
+  const confirmed = data.stakeholders.filter((stakeholder) => stakeholder.status === "confirmed");
+  const shownEvidence = needFilter ? data.evidence.filter((item) => item.need_id === needFilter) : data.evidence;
+
+  const addStakeholder = async () => {
+    if (name.trim().length < 2) return;
+    setAdding(true);
+    setError(null);
+    try {
+      await api.addStakeholder(data.project.id, { name: name.trim(), description: description.trim() });
+      setName("");
+      setDescription("");
+      toast.success("Stakeholder group added.");
+      onReload();
+    } catch (addError) {
+      setError(errorMessage(addError));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const identify = async () => {
+    setIdentifying(true);
+    setError(null);
+    try {
+      const groups = await api.identifyStakeholders(data.project.id);
+      toast.success(`${groups.length} stakeholder group(s) suggested. Review and confirm them before analysis.`);
+      onReload();
+    } catch (identifyError) {
+      setError(errorMessage(identifyError));
+    } finally {
+      setIdentifying(false);
+    }
+  };
+
+  const setStatus = async (stakeholder: Stakeholder, status: "confirmed" | "rejected") => {
+    setError(null);
+    try {
+      await api.updateStakeholder(stakeholder.id, { status });
+      onReload();
+    } catch (statusError) {
+      setError(errorMessage(statusError));
+    }
+  };
+
+  const startAnalysis = async () => {
+    setStarting(true);
+    setError(null);
+    try {
+      const job = await api.startStakeholderAnalysis(data.project.id);
+      rememberStakeholderJob(job.job_id);
+      toast.success("Stakeholder analysis started.");
+    } catch (startError) {
+      setError(errorMessage(startError));
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+        <SectionCard title="Stakeholder groups" icon={Users} eyebrow="Who has the problem?">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void identify()} disabled={identifying}>
+              {identifying ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+              {identifying ? "Identifying" : "Suggest groups with AI"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-full bg-forest"
+              onClick={() => void startAnalysis()}
+              disabled={starting || confirmed.length === 0}
+            >
+              {starting ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Search className="size-3.5" aria-hidden />}
+              {starting ? "Starting" : "Analyse confirmed groups"}
+            </Button>
+          </div>
+          <p className="mt-2 text-[0.65rem] leading-4 text-muted-foreground">
+            AI suggestions are not confirmed stakeholders. Confirm the groups that matter before
+            starting need analysis. {confirmed.length} confirmed.
+          </p>
+
+          <div className="mt-3">
+            <ResearchJobMonitor jobId={stakeholderJobId} label="stakeholder analysis" onTerminal={() => onReload()} />
+          </div>
+
+          {error && <ErrorNote>{error}</ErrorNote>}
+
+          <ul className="mt-3 space-y-2">
+            {data.stakeholders.length === 0 ? (
+              <li className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[0.68rem] text-muted-foreground">
+                No stakeholder groups yet. Add one manually or ask the backend to suggest groups.
+              </li>
+            ) : (
+              data.stakeholders.map((stakeholder) => (
+                <li key={stakeholder.id} className="rounded-xl border border-border/70 bg-cream/25 p-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[0.74rem] font-medium text-forest">{stakeholder.name}</p>
+                      <p className="mt-0.5 line-clamp-2 text-[0.62rem] leading-4 text-muted-foreground">
+                        {stakeholder.description || "No description"}
+                      </p>
+                    </div>
+                    <span className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.06em]",
+                      stakeholder.status === "confirmed" ? "bg-sage text-forest" : stakeholder.status === "rejected" ? "bg-cream text-muted-foreground" : "bg-gold/40 text-forest",
+                    )}>
+                      {stakeholder.status}
+                    </span>
+                  </div>
+                  {stakeholder.status !== "confirmed" && (
+                    <div className="mt-2 flex gap-1.5">
+                      <Button type="button" size="sm" variant="outline" className="h-6 rounded-full px-2 text-[0.6rem]" onClick={() => void setStatus(stakeholder, "confirmed")}>
+                        <CheckCircle2 className="size-3" aria-hidden /> Confirm
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" className="h-6 rounded-full px-2 text-[0.6rem] text-muted-foreground" onClick={() => void setStatus(stakeholder, "rejected")}>
+                        <XCircle className="size-3" aria-hidden /> Reject
+                      </Button>
+                    </div>
+                  )}
+                </li>
+              ))
+            )}
+          </ul>
+
+          <div className="mt-3 rounded-xl border border-border/70 bg-card p-3">
+            <p className="label-caps text-forest/45">Add a group manually</p>
+            <div className="mt-2 space-y-2">
+              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Group name" className="h-9 bg-ivory/60 text-xs" />
+              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={2} placeholder="Who they are and what context matters" className="bg-ivory/60 text-xs" />
+              <Button type="button" size="sm" className="rounded-full bg-forest" disabled={adding || name.trim().length < 2} onClick={() => void addStakeholder()}>
+                {adding ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Plus className="size-3.5" aria-hidden />} Add stakeholder
+              </Button>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Evidence-backed needs" icon={ShieldCheck} eyebrow="Supporting and contradicting sources">
+          {data.needs.length === 0 ? (
+            <EmptyState
+              icon={ShieldCheck}
+              title="No needs analysed"
+              description="Confirm stakeholder groups and run stakeholder analysis. Needs only appear when the backend records supporting or contradicting evidence."
+            />
+          ) : (
+            <ul className="space-y-2.5">
+              {data.needs.map((need) => {
+                const stakeholder = data.stakeholders.find((item) => item.id === need.stakeholder_id);
+                const evidence = data.evidence.filter((item) => item.need_id === need.id);
+                return (
+                  <li key={need.id} className="rounded-xl border border-border/70 bg-cream/25 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="max-w-[75%] text-[0.75rem] font-medium leading-5 text-forest">{need.need_text}</p>
+                      <span className={cn(
+                        "rounded-full px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.06em]",
+                        ["supported", "strongly_supported"].includes(need.evidence_status)
+                          ? "bg-sage text-forest"
+                          : need.evidence_status === "conflicting"
+                            ? "bg-peach text-forest"
+                            : "bg-cream text-muted-foreground",
+                      )}>
+                        {need.evidence_status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[0.6rem] text-muted-foreground">
+                      {stakeholder?.name ?? "Stakeholder unavailable"} · {need.need_type} · {need.supporting_count} supporting · {need.contradicting_count} contradicting · {need.independent_source_count} independent source(s)
+                    </p>
+                    {need.ai_interpretation && (
+                      <p className="mt-2 rounded-lg bg-lavender/25 px-2.5 py-1.5 text-[0.64rem] leading-4 text-forest/70">
+                        <span className="font-semibold">AI interpretation:</span> {need.ai_interpretation}
+                      </p>
+                    )}
+                    {need.validation_question && (
+                      <p className="mt-1.5 text-[0.64rem] leading-4 text-forest/65">
+                        <span className="font-medium text-forest">Validation question:</span> {need.validation_question}
+                      </p>
+                    )}
+                    {need.missing_information.length > 0 && (
+                      <p className="mt-1 text-[0.62rem] leading-4 text-muted-foreground">
+                        Missing: {need.missing_information.join("; ")}
+                      </p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <Button type="button" size="sm" variant="ghost" className="h-6 rounded-full px-2 text-[0.6rem]" onClick={() => setNeedFilter(need.id)}>
+                        <Search className="size-3" aria-hidden /> Show linked evidence ({evidence.length})
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <InfoNote tone="cream" className="mt-3">
+            Evidence status describes the strength of retrieved evidence, not proof of demand or
+            prevalence.
+          </InfoNote>
+        </SectionCard>
+      </div>
+
+      <SectionCard
+        title="Evidence ledger"
+        icon={GitBranch}
+        action={
+          needFilter ? (
+            <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full text-[0.62rem]" onClick={() => setNeedFilter(null)}>
+              Clear need filter
+            </Button>
+          ) : (
+            <span className="text-[0.65rem] text-muted-foreground">{data.evidence.length} item(s)</span>
+          )
+        }
+      >
+        {shownEvidence.length === 0 ? (
+          <EmptyState
+            icon={ShieldCheck}
+            title="No evidence items"
+            description="Evidence appears after research or stakeholder analysis retrieves and extracts public sources."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {shownEvidence.map((item) => <EvidenceRow key={item.id} item={item} />)}
+          </ul>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
+function RequirementsTab({ data, onReload }: { data: Data; onReload: () => void }) {
+  const opportunityIds = data.opportunities.map((opportunity) => opportunity.id).join("|");
+  const chains = useResource(
+    async (signal) => {
+      const results = await Promise.all(
+        data.opportunities.slice(0, 12).map(async (opportunity) => {
+          try {
+            return await api.getChain(opportunity.id, signal);
+          } catch {
+            return null;
+          }
+        }),
+      );
+      return results.filter((chain): chain is OpportunityChain => Boolean(chain));
+    },
+    [opportunityIds],
+    { enabled: data.opportunities.length > 0 },
+  );
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState("functional");
+  const [priority, setPriority] = useState("medium");
+  const [saving, setSaving] = useState(false);
+  const [busyOpportunity, setBusyOpportunity] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const addRequirement = async () => {
+    if (title.trim().length < 3) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.createProjectRequirement(data.project.id, {
+        title: title.trim(),
+        description: description.trim(),
+        requirement_type: type,
+        priority,
+      });
+      setTitle("");
+      setDescription("");
+      setDialogOpen(false);
+      toast.success("Project requirement recorded.");
+      onReload();
+    } catch (addError) {
+      setError(errorMessage(addError));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const generate = async (opportunity: Opportunity) => {
+    setBusyOpportunity(opportunity.id);
+    setError(null);
+    try {
+      const requirement = await api.generateRequirement(opportunity.id);
+      toast.success("Requirement generated. Review it before treating it as final.");
+      chains.reload();
+      toast.info(requirement.text, { description: `Acceptance test: ${requirement.acceptance_test}` });
+    } catch (generateError) {
+      setError(errorMessage(generateError));
+    } finally {
+      setBusyOpportunity(null);
+    }
+  };
+
+  const verify = async (requirementId: string) => {
+    setVerifying(requirementId);
+    setError(null);
+    try {
+      const results = await api.verifyRequirement(requirementId);
+      const passed = results.filter((result) => result.result === "pass").length;
+      toast.success(`Verification finished: ${passed}/${results.length} checks passed.`);
+      chains.reload();
+    } catch (verifyError) {
+      setError(errorMessage(verifyError));
+    } finally {
+      setVerifying(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionCard
+        title="Project requirements"
+        icon={ClipboardCheck}
+        action={
+          <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setDialogOpen(true)}>
+            <Plus className="size-3.5" aria-hidden /> Add requirement
+          </Button>
+        }
+      >
+        {data.requirements.length === 0 ? (
+          <EmptyState
+            icon={ClipboardCheck}
+            title="No project requirements"
+            description="Record the requirements you intend to build. The proof chain can also generate requirements from validated opportunities."
+            action={
+              <Button type="button" size="sm" className="rounded-full bg-forest" onClick={() => setDialogOpen(true)}>
+                Add the first requirement
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="space-y-2">
+            {data.requirements.map((requirement) => (
+              <li key={requirement.id} className="rounded-xl border border-border/70 bg-cream/25 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-[0.76rem] font-medium leading-5 text-forest">{requirement.title}</p>
+                  <div className="flex gap-1">
+                    <Tag tone="lavender">{requirement.requirement_type}</Tag>
+                    <Tag tone={requirement.priority === "high" ? "peach" : "cream"}>{requirement.priority}</Tag>
+                  </div>
+                </div>
+                <p className="mt-1 text-[0.66rem] leading-5 text-muted-foreground">
+                  {requirement.description || "No acceptance test recorded."}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Proof chain" icon={GitBranch} eyebrow="Opportunity → requirement → verification">
+        {data.opportunities.length === 0 ? (
+          <EmptyState
+            icon={GitBranch}
+            title="No opportunities to build from"
+            description="Run research and stakeholder analysis first. The proof chain starts from a recorded opportunity hypothesis."
+          />
+        ) : (
+          <>
+            {error && <ErrorNote>{error}</ErrorNote>}
+            <ul className="space-y-3">
+              {data.opportunities.map((opportunity) => {
+                const chain = chains.data?.find((item) => item.opportunity.id === opportunity.id);
+                const requirements = chain?.requirements ?? [];
+                return (
+                  <li key={opportunity.id} className="rounded-xl border border-border/70 bg-cream/25 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[0.75rem] font-medium leading-5 text-forest">{opportunity.description}</p>
+                        <p className="mt-0.5 text-[0.6rem] text-muted-foreground">
+                          {opportunity.origin.replace(/_/g, " ")} · {opportunity.status} · {opportunity.linked_need_ids.length} linked need(s)
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 rounded-full text-[0.62rem]"
+                        disabled={busyOpportunity === opportunity.id}
+                        onClick={() => void generate(opportunity)}
+                      >
+                        {busyOpportunity === opportunity.id ? <Loader2 className="size-3 animate-spin" aria-hidden /> : <Sparkles className="size-3" aria-hidden />}
+                        Generate requirement
+                      </Button>
+                    </div>
+
+                    {requirements.length === 0 ? (
+                      <p className="mt-2 rounded-lg bg-card/60 px-2.5 py-2 text-[0.64rem] leading-4 text-muted-foreground">
+                        No generated requirement yet. The backend will use this opportunity's linked
+                        needs and evidence.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 space-y-2">
+                        {requirements.map((requirement) => (
+                          <li key={requirement.id} className="rounded-lg border border-border/60 bg-card/60 p-2.5">
+                            <p className="text-[0.72rem] font-medium leading-5 text-forest">{requirement.text}</p>
+                            <p className="mt-1 text-[0.64rem] leading-4 text-muted-foreground">
+                              <span className="font-medium text-forest/70">Acceptance test:</span> {requirement.acceptance_test}
+                            </p>
+                            {requirement.verification.length === 0 ? (
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-cream px-2 py-0.5 text-[0.56rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                                  verification not run
+                                </span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-6 rounded-full bg-forest px-2 text-[0.6rem]"
+                                  disabled={verifying === requirement.id}
+                                  onClick={() => void verify(requirement.id)}
+                                >
+                                  {verifying === requirement.id ? <Loader2 className="size-3 animate-spin" aria-hidden /> : <ShieldCheck className="size-3" aria-hidden />}
+                                  Run verification
+                                </Button>
+                              </div>
+                            ) : (
+                              <ul className="mt-2 space-y-1">
+                                {requirement.verification.map((result, index) => (
+                                  <li key={`${result.test}-${index}`} className="flex items-start gap-1.5 text-[0.62rem] leading-4">
+                                    <span className={cn(
+                                      "mt-0.5 rounded-full px-1.5 py-0.5 text-[0.52rem] font-semibold uppercase",
+                                      result.result === "pass" ? "bg-sage text-forest" : result.result === "fail" ? "bg-peach text-forest" : "bg-cream text-muted-foreground",
+                                    )}>
+                                      {result.result}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      <span className="font-medium text-forest/70">{result.test}:</span> {result.details}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <InfoNote tone="cream" className="mt-3">
+              Generated requirements remain reviewable. Verification checks the recorded evidence and
+              requirement tests; it does not prove market demand.
+            </InfoNote>
+          </>
+        )}
+      </SectionCard>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="border-border bg-card sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-forest">Add project requirement</DialogTitle>
+            <DialogDescription>
+              Record what the system must do and how you would accept it. This is saved to the
+              backend's project requirements endpoint.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="Requirement" htmlFor="requirement-title">
+              <Input id="requirement-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="The system shall…" className="bg-ivory/60" />
+            </Field>
+            <Field label="Acceptance test" htmlFor="requirement-description">
+              <Textarea id="requirement-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="A concrete check that shows the requirement works." className="bg-ivory/60" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Type" htmlFor="requirement-type">
+                <select id="requirement-type" value={type} onChange={(event) => setType(event.target.value)} className="h-9 w-full rounded-md border border-input bg-ivory/60 px-3 text-sm text-forest">
+                  <option value="functional">Functional</option>
+                  <option value="non_functional">Non-functional</option>
+                  <option value="constraint">Constraint</option>
+                </select>
+              </Field>
+              <Field label="Priority" htmlFor="requirement-priority">
+                <select id="requirement-priority" value={priority} onChange={(event) => setPriority(event.target.value)} className="h-9 w-full rounded-md border border-input bg-ivory/60 px-3 text-sm text-forest">
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </Field>
+            </div>
+            {error && <ErrorNote>{error}</ErrorNote>}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => void addRequirement()} disabled={saving || title.trim().length < 3} className="rounded-full bg-forest px-5">
+              {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null} Save requirement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function PassportTab({
+  data,
+  ready,
+  summary,
+}: {
+  data: Data;
+  ready: ReturnType<typeof buildPassport>;
+  summary: ReturnType<typeof readinessSummary>;
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <SectionCard title="Build readiness" icon={BookOpenCheck} eyebrow="No invented percentage">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Tag tone="sage">{summary.complete} complete</Tag>
+          <Tag tone="gold">{summary.partial} partial</Tag>
+          <Tag tone="peach">{summary.missing} missing</Tag>
+          <Tag tone="cream">{summary.notAssessed} not assessed</Tag>
+        </div>
+        <ReadinessList checks={ready.checks} />
+        <Button asChild className="mt-3 w-full rounded-full bg-forest">
+          <Link to={`/projects/${data.project.id}/passport`}>
+            <BookOpenCheck className="size-4" aria-hidden /> Open the full printable Passport
+          </Link>
+        </Button>
+      </SectionCard>
+
+      <SectionCard title="What the Passport will include" icon={ShieldCheck}>
+        <ul className="space-y-2 text-[0.72rem] leading-5 text-charcoal/70">
+          {[
+            "Project identity and target users.",
+            "Comparable projects and recorded differences.",
+            "Evidence ledger with source URLs, excerpts and verification flags.",
+            "Stakeholder needs and unresolved validation questions.",
+            "Project requirements and generated proof-chain requirements.",
+            "Verification results and next steps.",
+            "A dated report with explicit limitations.",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-forest/50" aria-hidden />
+              {item}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 rounded-xl bg-cream/60 px-3 py-2.5 text-[0.65rem] leading-5 text-forest/65">
+          <p className="flex items-center gap-1.5 font-semibold text-forest">
+            <TriangleAlert className="size-3.5" aria-hidden /> Readiness is a checklist
+          </p>
+          <p className="mt-1">
+            {summary.complete} of {summary.total} checks are complete. This is not an overall
+            percentage and does not imply patentability or guaranteed success.
+          </p>
+        </div>
+        <InfoNote tone="cream" className="mt-3">
+          Generated proof-chain requirements and verification results are loaded on the full Passport page.
+        </InfoNote>
+      </SectionCard>
+    </div>
+  );
+}
