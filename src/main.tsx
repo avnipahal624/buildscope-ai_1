@@ -20,6 +20,7 @@ const EvidenceLedger = lazy(() => import("./pages/EvidenceLedger.tsx"));
 const ProblemValidation = lazy(() => import("./pages/ProblemValidation.tsx"));
 const SimilarityIntelligence = lazy(() => import("./pages/SimilarityIntelligence.tsx"));
 const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis.tsx"));
+const ResearchIntelligence = lazy(() => import("./pages/ResearchIntelligence.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -132,6 +133,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/validation" element={<ProblemValidation />} />
             <Route path="/similarity" element={<SimilarityIntelligence />} />
             <Route path="/competitors" element={<CompetitorAnalysis />} />
+            <Route path="/research" element={<ResearchIntelligence />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
