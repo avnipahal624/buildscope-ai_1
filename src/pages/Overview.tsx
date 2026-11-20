@@ -1,32 +1,27 @@
 import { api, errorMessage, type Evidence, type Project, type ProjectReport, type ProjectRequirement } from "@/lib/api";
 import { useResource } from "@/hooks/use-resource";
 import { buildPassport, readinessSummary } from "@/lib/passport";
-import { greeting, formatDate, relativeTime } from "@/lib/format";
+import { formatDate, relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  ArrowUpRight,
   BookOpenCheck,
   CheckCircle2,
   ClipboardCheck,
   Clock,
-  Database,
   FileCheck2,
   FileSearch,
   FolderKanban,
   Github,
-  Layers3,
   Loader2,
   Plus,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
-  TriangleAlert,
   Users,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useMemo } from "react";
-import { ArchScene, CompassStar, LaptopScene } from "@/components/decor/Scenes";
+import { CompassStar, LaptopScene } from "@/components/decor/Scenes";
 import {
   EmptyState,
   ErrorNote,
@@ -252,136 +247,45 @@ export default function Overview() {
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-4 xl:grid-cols-[1.62fr_1fr]">
-        <div className="relative overflow-hidden rounded-[26px] border border-border/70 bg-cream/60">
-          <div className="absolute inset-0 grain opacity-60" aria-hidden />
-          <div className="relative grid gap-2 sm:grid-cols-[1.1fr_0.9fr]">
-            <div className="relative z-10 p-5 sm:p-7">
-              <p className="label-caps text-forest/45">Research command centre</p>
-              <h1 className="mt-2 font-display text-[2.1rem] leading-[1.02] text-forest sm:text-[2.7rem]">
-                {greeting()}.
-                <br />
-                Start with what exists.
-                <span className="ml-1 text-gold">✦</span>
-              </h1>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-charcoal/65">
-                Every investigation below is a real project in the research service. Compare the
-                landscape, collect evidence and decide what is still unproven.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-sage/70 px-2.5 py-1 text-[0.68rem] text-forest">
-                  <Database className="size-3" aria-hidden /> FastAPI service
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-peach/70 px-2.5 py-1 text-[0.68rem] text-forest">
-                  <TriangleAlert className="size-3" aria-hidden /> Shared workspace
-                </span>
-              </div>
-              <Button asChild size="sm" variant="outline" className="mt-4 rounded-full border-forest/20 bg-ivory/70 text-forest">
-                <Link to="/projects?new=1">
-                  <Plus className="size-3.5" aria-hidden /> New investigation
+      <section className="paper overflow-hidden rounded-2xl border border-forest/15" aria-label="Investigation case file">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest/15 bg-sage/45 px-5 py-3">
+          <p className="label-caps text-forest/70">BuildScope / Investigation case file</p>
+          <span className="text-xs text-forest/60">{entries.length} project{entries.length === 1 ? "" : "s"} in this workspace</span>
+        </div>
+        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.8fr)]">
+          <div>
+            <p className="label-caps text-forest/50">Current investigation</p>
+            <h1 className="mt-2 font-display text-3xl leading-tight text-forest sm:text-4xl">
+              {entries[0]?.project.name ?? "Start an investigation"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-charcoal/70">
+              {entries[0]?.project.problem_statement || entries[0]?.project.description || "Record a problem, investigate existing work and review the evidence before deciding what to build."}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button asChild size="sm" className="bg-forest text-ivory">
+                <Link to={entries[0] ? `/projects/${entries[0].project.id}` : "/projects?new=1"}>
+                  {entries[0] ? "Open case file" : "New investigation"} <ArrowRight className="size-3.5" aria-hidden />
                 </Link>
               </Button>
-            </div>
-            <div className="relative hidden min-h-[220px] sm:block">
-              <ArchScene className="absolute inset-0 h-full w-full rounded-none border-0" />
-              <div className="absolute inset-0 bg-gradient-to-r from-cream/70 via-transparent to-transparent" aria-hidden />
+              {entries[0] && <Button asChild size="sm" variant="outline"><Link to="/projects?new=1"><Plus className="size-3.5" aria-hidden /> New investigation</Link></Button>}
             </div>
           </div>
-        </div>
-
-        <div className="paper relative overflow-hidden rounded-[26px] p-5 sm:p-6">
-          <div className="pointer-events-none absolute -right-6 -top-6 size-24 rounded-full bg-sage/50 blur-2xl" aria-hidden />
-          <div className="relative">
-            <p className="label-caps text-forest/45">Workspace coverage</p>
-            <p className="mt-1 text-[0.68rem] leading-5 text-muted-foreground">
-              Counts come from backend records. No readiness score is invented.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {[
-                { label: "Projects", value: entries.length, icon: FolderKanban },
-                { label: "Investigated", value: totals.investigated, icon: FileSearch },
-                { label: "Comparable projects", value: totals.landscape, icon: Github },
-                { label: "Evidence items", value: totals.evidence, icon: ShieldCheck },
-              ].map((item) => (
-                <div key={item.label} className="rounded-xl bg-cream/60 px-3 py-2.5">
-                  <item.icon className="size-3.5 text-forest/40" aria-hidden />
-                  <p className="tnum mt-1 font-display text-2xl leading-none text-forest">{item.value}</p>
-                  <p className="mt-1 text-[0.6rem] uppercase tracking-[0.08em] text-muted-foreground">{item.label}</p>
-                </div>
+          <div className="border-t border-forest/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            <p className="label-caps text-forest/50">Recorded coverage</p>
+            <dl className="mt-2 divide-y divide-forest/10 text-sm">
+              {[["Investigated projects", totals.investigated], ["Comparable projects", totals.landscape], ["Evidence excerpts", totals.evidence], ["Project requirements", totals.requirements]].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-3 py-2"><dt className="text-charcoal/65">{label}</dt><dd className="tnum font-semibold text-forest">{value}</dd></div>
               ))}
-            </div>
-            <div className="mt-3 rounded-xl bg-sage/35 px-3 py-2.5 text-[0.68rem] leading-5 text-forest/70">
-              <p className="flex items-center gap-1.5 font-semibold text-forest">
-                <Layers3 className="size-3.5" aria-hidden /> {totals.requirements} project requirement(s)
-              </p>
-              <p className="mt-1">
-                Generated proof-chain requirements are counted inside each project's Passport.
-              </p>
-            </div>
+            </dl>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">Counts come from stored records. Open the case file to inspect sources and unresolved questions.</p>
           </div>
         </div>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Workspace metrics">
-        {[
-          {
-            label: "Active investigations",
-            value: entries.length,
-            detail: `${totals.investigated} with comparable projects`,
-            icon: FolderKanban,
-            tone: "bg-sage",
-            href: "/projects",
-          },
-          {
-            label: "Landscape records",
-            value: totals.landscape,
-            detail: "Public projects retrieved by research",
-            icon: Github,
-            tone: "bg-peach",
-            href: "/projects",
-          },
-          {
-            label: "Evidence items",
-            value: totals.evidence,
-            detail: "Excerpts with source provenance",
-            icon: ShieldCheck,
-            tone: "bg-lavender",
-            href: "/progress",
-          },
-          {
-            label: "Requirements",
-            value: totals.requirements,
-            detail: "Recorded project requirements",
-            icon: ClipboardCheck,
-            tone: "bg-gold/45",
-            href: "/projects",
-          },
-        ].map((metric) => (
-          <Link
-            key={metric.label}
-            to={metric.href}
-            className={cn(
-              "group flex items-center gap-3 rounded-2xl border border-forest/10 p-4 transition-transform hover:-translate-y-0.5",
-              metric.tone,
-            )}
-          >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ivory/75 text-forest">
-              <metric.icon className="size-[1.1rem]" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="tnum font-display text-2xl leading-none text-forest">{metric.value}</p>
-              <p className="mt-1 text-[0.7rem] font-medium leading-tight text-forest/80">{metric.label}</p>
-              <p className="mt-0.5 truncate text-[0.6rem] text-forest/45">{metric.detail}</p>
-            </div>
-            <ArrowUpRight className="size-3.5 shrink-0 text-forest/30 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-          </Link>
-        ))}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-12">
         <SectionCard
-          title="Your next move"
-          icon={Sparkles}
+          title="Items needing attention"
+          icon={ClipboardCheck}
           action={<Link to="/projects" className="text-xs text-forest/60 hover:text-forest">All projects</Link>}
           className="lg:col-span-4"
         >
