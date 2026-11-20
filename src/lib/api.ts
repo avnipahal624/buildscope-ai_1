@@ -285,7 +285,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
     if (!response.ok) {
       // Clear expired sessions after backend secret rotation and return to login.
-      if (response.status === 401 && !path.startsWith("/api/auth/")) {
+      if (response.status === 401 && !path.startsWith("/api/auth/") && localStorage.getItem("buildscope:token")) {
         localStorage.removeItem("buildscope:token");
         if (typeof window !== "undefined") window.location.assign("/dashboard");
       }
