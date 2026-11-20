@@ -41,6 +41,7 @@ export function JobStatusBadge({ status }: { status: string }) {
 export function ResearchJobMonitor({
   jobId,
   label,
+  projectId,
   onTerminal,
 }: {
   jobId: string | null;

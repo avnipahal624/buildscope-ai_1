@@ -64,6 +64,7 @@ import {
   ToneIcon,
 } from "@/components/common";
 import { EvidenceRow, ReadinessList, ResearchJobMonitor, SimilarProjectCard } from "@/components/research";
+import { ResearchFunnel } from "@/components/ResearchVisuals";
 
 const TABS = ["overview", "research", "evidence", "requirements", "passport"] as const;
 type Tab = (typeof TABS)[number];
@@ -501,6 +502,12 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
           If the job fails or returns partial results, BuildScope does not fill the gaps with fabricated projects.
         </InfoNote>
       </SectionCard>
+
+      {data.report?.research_scope && (
+        <SectionCard title="Recorded research coverage" icon={Search} action={<Link to="/research" className="text-xs text-forest underline underline-offset-4">Inspect runs</Link>}>
+          <ResearchFunnel scope={data.report.research_scope} />
+        </SectionCard>
+      )}
 
       <SectionCard
         title="Comparable public projects"
