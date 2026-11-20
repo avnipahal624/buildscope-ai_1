@@ -358,6 +358,9 @@ export const api = {
   getJob: (jobId: string, signal?: AbortSignal) =>
     request<ResearchJob>(`/api/jobs/${encodeURIComponent(jobId)}`, { signal, timeoutMs: 25_000 }),
 
+  listResearchRuns: (projectId: string, signal?: AbortSignal) =>
+    request<ResearchJob[]>(`/api/projects/${encodeURIComponent(projectId)}/research-runs`, { signal }),
+
   listSimilarProjects: (projectId: string, signal?: AbortSignal) =>
     request<SimilarProject[]>(
       `/api/projects/${encodeURIComponent(projectId)}/similar-projects`,
