@@ -19,7 +19,6 @@ import {
   Search,
   Server,
   ShieldCheck,
-  CircleHelp,
   Sun,
   TrendingUp,
   Wifi,
