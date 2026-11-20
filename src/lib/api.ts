@@ -1,20 +1,18 @@
 /**
  * Single integration point for the existing FastAPI backend.
  *
- * In development the Vite dev server proxies `/backend` to
- * BUILDSCOPE_API_TARGET (default: the deployed Render backend), which avoids
- * the backend's origin allow-list blocking the preview. In a deployed build,
- * set VITE_API_BASE_URL to the FastAPI origin and add that origin to the
- * backend's CORS allow-list.
+ * Vite proxies `/backend` in development. Vercel rewrites that same path to
+ * Render in deployed builds so temporary preview URLs can sign in without
+ * expanding the backend's CORS allow-list for every deployment.
+ * Other hosts use VITE_API_BASE_URL or the default Render origin.
  */
 const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
-const BASE_URL = (configuredBase?.replace(/\/+$/, "") || (import.meta.env.DEV ? "/backend" : "https://buildscope-backend.onrender.com"));
+const useProxy = import.meta.env.DEV || window.location.hostname.endsWith(".vercel.app");
+const BASE_URL = useProxy ? "/backend" : (configuredBase?.replace(/\/+$/, "") || "https://buildscope-backend.onrender.com");
 
-export const API_BASE_LABEL = configuredBase
-  ? configuredBase
-  : import.meta.env.DEV
-    ? "the deployed FastAPI service (via the development proxy)"
-    : "https://buildscope-backend.onrender.com";
+export const API_BASE_LABEL = useProxy
+  ? "the deployed FastAPI service (via a same-origin proxy)"
+  : BASE_URL;
 
 export type JobStatus = "pending" | "running" | "completed" | "completed_with_errors" | "failed";
 export type AuthSession = { access_token: string; token_type: string; user: { id: string; email: string } };
@@ -338,8 +336,8 @@ export function errorMessage(error: unknown): string {
 }
 
 export const api = {
-  login: (email: string, password: string) => request<AuthSession>("/api/auth/login", { method: "POST", body: { email, password }, timeoutMs: 20_000 }),
-  register: (email: string, password: string) => request<AuthSession>("/api/auth/register", { method: "POST", body: { email, password }, timeoutMs: 20_000 }),
+  login: (email: string, password: string) => request<AuthSession>("/api/auth/login", { method: "POST", body: { email, password }, timeoutMs: 60_000 }),
+  register: (email: string, password: string) => request<AuthSession>("/api/auth/register", { method: "POST", body: { email, password }, timeoutMs: 60_000 }),
   me: (signal?: AbortSignal) => request<{ id: string; email: string }>("/api/auth/me", { signal, timeoutMs: 20_000 }),
   health: (signal?: AbortSignal) => request<{ status: string }>("/health", { signal, timeoutMs: 20_000 }),
 
