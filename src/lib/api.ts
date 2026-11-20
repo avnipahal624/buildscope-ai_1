@@ -283,7 +283,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       }
     }
 
-    if (!response.ok) {\n      // Clear expired sessions after backend secret rotation and return to login.\n      if (response.status === 401 && !path.startsWith("/api/auth/")) {\n        localStorage.removeItem("buildscope:token");\n        if (typeof window !== "undefined") window.location.assign("/dashboard");\n      }
+    if (!response.ok) {
+      // Clear expired sessions after backend secret rotation and return to login.
+      if (response.status === 401 && !path.startsWith("/api/auth/")) {
+        localStorage.removeItem("buildscope:token");
+        if (typeof window !== "undefined") window.location.assign("/dashboard");
+      }
       const detail =
         payload && typeof payload === "object" && "detail" in payload
           ? String((payload as { detail: unknown }).detail)
