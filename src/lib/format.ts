@@ -1,11 +1,13 @@
-export function formatDate(timestamp?: number | null, withTime = false) {
+export function formatDate(timestamp?: number | string | null, withTime = false) {
   if (!timestamp) return "—";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "date unavailable";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
-  }).format(new Date(timestamp));
+  }).format(date);
 }
 
 export function formatDay(timestamp?: number | null) {

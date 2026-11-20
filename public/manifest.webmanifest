@@ -1,11 +1,11 @@
 {
-  "name": "freebuff.com application",
-  "short_name": "freebuff.com",
-  "description": "freebuff.com application",
+  "name": "BuildScope AI",
+  "short_name": "BuildScope",
+  "description": "Evidence-driven project investigation, prior-art research and Buildability Passports.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#F8F3EA",
+  "theme_color": "#183B2E",
   "icons": [
     {
       "src": "/logo.svg",

@@ -16,7 +16,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { EvidenceStatus } from "@/lib/credibility";
+
+type EvidenceStatus =
+  | "Verified"
+  | "Evidence found"
+  | "Needs review"
+  | "Not assessed"
+  | "Unable to verify";
 
 export type Tone = "sage" | "peach" | "lavender" | "gold" | "cream" | "forest";
 
@@ -335,9 +341,9 @@ export function ErrorNote({ children }: { children: ReactNode }) {
   );
 }
 
-export function InfoNote({ children, tone = "cream" }: { children: ReactNode; tone?: Tone }) {
+export function InfoNote({ children, tone = "cream", className }: { children: ReactNode; tone?: Tone; className?: string }) {
   return (
-    <p className={cn("flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-5 text-forest/75", TONE_BG[tone])}>
+    <p className={cn("flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-5 text-forest/75", TONE_BG[tone], className)}>
       <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       {children}
     </p>

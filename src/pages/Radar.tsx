@@ -1,164 +1,74 @@
-import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/hooks/use-auth";
-import { matchOpportunity } from "@/lib/matching";
-import { DOMAINS, SKILL_LIBRARY } from "@/lib/skills";
-import { formatDay } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
+import { api, type HackathonSearchResult } from "@/lib/api";
+import { useResource } from "@/hooks/use-resource";
+import { formatDate } from "@/lib/format";
 import {
-  ArrowDownWideNarrow,
-  Bookmark,
+  ArrowUpRight,
   CalendarClock,
-  Filter,
-  LayoutGrid,
-  List,
+  ExternalLink,
   Loader2,
-  MapPin,
   Radar as RadarIcon,
   RotateCcw,
   Search,
-  SlidersHorizontal,
   Sparkles,
-  Trophy,
-  X,
+  TriangleAlert,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router";
-import { toast } from "sonner";
-import { OpportunityCard } from "@/components/OpportunityCard";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Chip,
-  DataBadge,
   EmptyState,
+  ErrorNote,
   Field,
   InfoNote,
-  LoadingBlock,
   PageHeader,
+  SectionCard,
   Tag,
 } from "@/components/common";
 import { ArchScene } from "@/components/decor/Scenes";
 
-const FORMATS = ["online", "offline", "hybrid"] as const;
-const DEADLINE_WINDOWS = [
-  { value: "any", label: "Any time" },
-  { value: "14", label: "Next 14 days" },
-  { value: "30", label: "Next 30 days" },
-  { value: "90", label: "Next 90 days" },
-] as const;
+const SUGGESTIONS = [
+  "student AI hackathon",
+  "climate hackathon 2026",
+  "campus health hackathon",
+  "fintech student challenge",
+  "design systems hackathon",
+  "open source student sprint",
+];
 
 export default function Radar() {
-  const { user } = useAuth();
-  const opportunities = useQuery(api.opportunities.list);
-  const savedRows = useQuery(api.opportunities.saved);
-  const toggleSave = useMutation(api.opportunities.toggleSave);
+  const [searchParams] = useSearchParams();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState("");
+  const [query, setQuery] = useState<string | null>(null);
+  const [limit, setLimit] = useState(12);
 
-  const [query, setQuery] = useState("");
-  const [domains, setDomains] = useState<string[]>([]);
-  const [technologies, setTechnologies] = useState<string[]>([]);
-  const [formats, setFormats] = useState<string[]>([]);
-  const [location, setLocation] = useState("all");
-  const [deadlineWindow, setDeadlineWindow] = useState<string>("any");
-  const [eligibleOnly, setEligibleOnly] = useState(false);
-  const [prizeOnly, setPrizeOnly] = useState(false);
-  const [sort, setSort] = useState<"match" | "deadline" | "name">("match");
-  const [view, setView] = useState<"grid" | "list">("grid");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [pendingSave, setPendingSave] = useState<string | null>(null);
-
-  const savedIds = useMemo(
-    () => new Set((savedRows ?? []).map((row) => row.opportunity._id)),
-    [savedRows],
+  const result = useResource<HackathonSearchResult | null>(
+    (signal) => (query ? api.searchHackathons(query, limit, signal) : Promise.resolve(null)),
+    [query, limit],
+    { enabled: Boolean(query) },
   );
 
-  const profile = {
-    skills: user?.skills,
-    domains: user?.domains,
-    interests: user?.interests,
-    academicYear: user?.academicYear,
-    weeklyHours: user?.weeklyHours,
+  useEffect(() => {
+    if (searchParams.get("search") === "1") inputRef.current?.focus();
+  }, [searchParams]);
+
+  const submit = (value: string) => {
+    const clean = value.trim();
+    if (clean.length < 2) return;
+    setDraft(clean);
+    if (clean === query) result.reload();
+    else setQuery(clean);
   };
-
-  const matches = useMemo(() => {
-    return (opportunities ?? []).map((opportunity) => ({
-      opportunity,
-      match: matchOpportunity(opportunity, profile),
-    }));
-  }, [opportunities, user]);
-
-  const locations = useMemo(() => {
-    const set = new Set((opportunities ?? []).map((opportunity) => opportunity.location));
-    return Array.from(set).sort();
-  }, [opportunities]);
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return matches
-      .filter(({ opportunity, match }) => {
-        if (needle) {
-          const haystack = `${opportunity.name} ${opportunity.organiser} ${opportunity.domain} ${opportunity.description} ${opportunity.skillsRequired.join(" ")}`.toLowerCase();
-          if (!haystack.includes(needle)) return false;
-        }
-        if (domains.length > 0 && !domains.includes(opportunity.domain)) return false;
-        if (formats.length > 0 && !formats.includes(opportunity.format)) return false;
-        if (location !== "all" && opportunity.location !== location) return false;
-        if (technologies.length > 0) {
-          const skills = opportunity.skillsRequired.map((skill) => skill.toLowerCase());
-          if (!technologies.every((tech) => skills.includes(tech.toLowerCase()))) return false;
-        }
-        if (eligibleOnly && !match.eligible) return false;
-        if (prizeOnly && !opportunity.prizeRange) return false;
-        if (deadlineWindow !== "any") {
-          const days = match.daysLeft;
-          if (days < 0 || days > Number(deadlineWindow)) return false;
-        }
-        return true;
-      })
-      .sort((a, b) => {
-        if (sort === "match") return b.match.score - a.match.score;
-        if (sort === "deadline") return a.opportunity.registrationDeadline - b.opportunity.registrationDeadline;
-        return a.opportunity.name.localeCompare(b.opportunity.name);
-      });
-  }, [matches, query, domains, formats, location, technologies, eligibleOnly, prizeOnly, deadlineWindow, sort]);
-
-  const activeFilterCount =
-    domains.length +
-    technologies.length +
-    formats.length +
-    (location !== "all" ? 1 : 0) +
-    (deadlineWindow !== "any" ? 1 : 0) +
-    (eligibleOnly ? 1 : 0) +
-    (prizeOnly ? 1 : 0);
 
   const reset = () => {
-    setDomains([]);
-    setTechnologies([]);
-    setFormats([]);
-    setLocation("all");
-    setDeadlineWindow("any");
-    setEligibleOnly(false);
-    setPrizeOnly(false);
-    setQuery("");
+    setDraft("");
+    setQuery(null);
+    inputRef.current?.focus();
   };
 
-  const onToggleSave = async (id: string) => {
-    setPendingSave(id);
-    try {
-      const result = await toggleSave({ opportunityId: id as never });
-      toast.success(result.saved ? "Saved to your shortlist." : "Removed from saved opportunities.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update saved opportunities.");
-    } finally {
-      setPendingSave(null);
-    }
-  };
-
-  if (opportunities === undefined || savedRows === undefined) {
-    return <LoadingBlock label="Loading the demonstration catalogue" />;
-  }
-
-  const savedItems = savedRows.slice(0, 4);
+  const data = result.data;
+  const searchedAt = data?.searched_at ? formatDate(new Date(data.searched_at).getTime(), true) : null;
 
   return (
     <div className="space-y-4">
@@ -166,21 +76,21 @@ export default function Radar() {
         eyebrow="Hackathon Radar"
         title={
           <>
-            Opportunities worth
+            Find a lead.
             <br />
-            <span className="italic text-forest/60">your preparation time.</span>
+            <span className="italic text-forest/60">Verify it at the source.</span>
           </>
         }
-        description="Search the labelled demonstration catalogue, filter by what fits your life, and see exactly why each opportunity matches your profile."
+        description="The radar calls the backend's live TinyFish web search. It returns titles, snippets and original URLs. Deadlines, eligibility, prizes and registration status are not invented or inferred."
         actions={
           <>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs text-forest/70">
-              <Trophy className="size-3.5 text-gold" aria-hidden />
-              {filtered.length} of {matches.length} opportunities
+              <Search className="size-3.5 text-gold" aria-hidden />
+              Live web search
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs text-forest/70">
-              <Bookmark className="size-3.5 text-gold" aria-hidden />
-              {savedIds.size} saved
+              <TriangleAlert className="size-3.5 text-peach-deep" aria-hidden />
+              Unverified results
             </span>
           </>
         }
@@ -189,306 +99,182 @@ export default function Radar() {
 
       <InfoNote tone="peach">
         <span>
-          <strong className="font-semibold">Demonstration catalogue.</strong> Every record here is
-          fabricated and labelled “Demo data”. BuildScope does not invent real hackathons, prizes or
-          official links. Each detail page shows what could and could not be verified.
+          <strong className="font-semibold">Search hits are leads, not confirmed opportunities.</strong>{" "}
+          A result can be stale or may not be accepting registrations. Open the organiser's page and
+          confirm the deadline, eligibility and status yourself.
         </span>
       </InfoNote>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        {/* Filters */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          <div className="paper rounded-2xl">
-            <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-forest">
-                <SlidersHorizontal className="size-4" aria-hidden /> Filters
-              </p>
-              <div className="flex items-center gap-1">
-                {activeFilterCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-forest"
-                  >
-                    <RotateCcw className="size-3" aria-hidden /> Reset
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="lg:hidden"
-                  onClick={() => setFiltersOpen((open) => !open)}
-                  aria-expanded={filtersOpen}
-                >
-                  <Filter className="size-4 text-forest/60" aria-hidden />
-                  <span className="sr-only">Toggle filters</span>
-                </button>
-              </div>
+      <SectionCard title="Search the live web" icon={RadarIcon}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit(draft);
+          }}
+          className="grid gap-3 sm:grid-cols-[1fr_130px_auto] sm:items-end"
+        >
+          <Field label="Theme, domain or technology" htmlFor="radar-query">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-3 size-4 text-muted-foreground" aria-hidden />
+              <Input
+                ref={inputRef}
+                id="radar-query"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder="e.g. climate hackathon for university students"
+                className="h-10 bg-ivory/60 pl-9"
+                minLength={2}
+                maxLength={140}
+                required
+              />
             </div>
-
-            <div className={cn("space-y-4 p-4", !filtersOpen && "hidden lg:block")}>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" aria-hidden />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search the radar"
-                  aria-label="Search opportunities"
-                  className="h-9 bg-ivory/60 pl-8 text-xs"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    className="absolute right-2 top-2.5 text-muted-foreground hover:text-forest"
-                    aria-label="Clear search"
-                  >
-                    <X className="size-3.5" aria-hidden />
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <p className="label-caps mb-1.5 text-forest/45">Domain</p>
-                <div className="flex flex-wrap gap-1">
-                  {DOMAINS.map((domain) => (
-                    <Chip
-                      key={domain}
-                      active={domains.includes(domain)}
-                      onClick={() =>
-                        setDomains((current) =>
-                          current.includes(domain) ? current.filter((d) => d !== domain) : [...current, domain],
-                        )
-                      }
-                      className="text-[0.62rem]"
-                    >
-                      {domain}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="label-caps mb-1.5 text-forest/45">Technology</p>
-                <div className="flex flex-wrap gap-1">
-                  {SKILL_LIBRARY.slice(0, 12).map((skill) => (
-                    <Chip
-                      key={skill.name}
-                      active={technologies.includes(skill.name)}
-                      onClick={() =>
-                        setTechnologies((current) =>
-                          current.includes(skill.name)
-                            ? current.filter((item) => item !== skill.name)
-                            : [...current, skill.name],
-                        )
-                      }
-                      className="text-[0.62rem]"
-                    >
-                      {skill.name}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="label-caps mb-1.5 text-forest/45">Format</p>
-                <div className="flex flex-wrap gap-1">
-                  {FORMATS.map((format) => (
-                    <Chip
-                      key={format}
-                      active={formats.includes(format)}
-                      onClick={() =>
-                        setFormats((current) =>
-                          current.includes(format) ? current.filter((f) => f !== format) : [...current, format],
-                        )
-                      }
-                      className="text-[0.62rem] capitalize"
-                    >
-                      {format}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <Field label="Location" htmlFor="location-filter">
-                <select
-                  id="location-filter"
-                  value={location}
-                  onChange={(event) => setLocation(event.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-ivory/60 px-2 text-xs text-forest"
-                >
-                  <option value="all">Anywhere</option>
-                  {locations.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Registration deadline" htmlFor="deadline-filter">
-                <select
-                  id="deadline-filter"
-                  value={deadlineWindow}
-                  onChange={(event) => setDeadlineWindow(event.target.value)}
-                  className="h-9 w-full rounded-md border border-input bg-ivory/60 px-2 text-xs text-forest"
-                >
-                  {DEADLINE_WINDOWS.map((window) => (
-                    <option key={window.value} value={window.value}>{window.label}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <div className="space-y-1.5">
-                <p className="label-caps text-forest/45">Eligibility &amp; prize</p>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-[0.7rem] text-forest/75">
-                  <input
-                    type="checkbox"
-                    checked={eligibleOnly}
-                    onChange={(event) => setEligibleOnly(event.target.checked)}
-                    className="accent-[#183B2E]"
-                  />
-                  Eligible for my academic year
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-[0.7rem] text-forest/75">
-                  <input
-                    type="checkbox"
-                    checked={prizeOnly}
-                    onChange={(event) => setPrizeOnly(event.target.checked)}
-                    className="accent-[#183B2E]"
-                  />
-                  Prize information listed
-                </label>
-              </div>
-
-              <div className="rounded-lg bg-cream/70 px-2.5 py-2 text-[0.62rem] leading-4 text-forest/55">
-                Matching uses your profile: skills, domains, year and {user?.weeklyHours ?? 5}h/week
-                of preparation time.
-              </div>
-            </div>
-          </div>
-
-          {savedItems.length > 0 && (
-            <div className="paper mt-3 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <p className="font-display text-base text-forest">Saved shortlist</p>
-                <Link to="/saved" className="text-[0.65rem] text-forest/60 hover:text-forest">View all</Link>
-              </div>
-              <ul className="mt-2 space-y-2">
-                {savedItems.map(({ opportunity }) => (
-                  <li key={opportunity._id} className="flex items-start gap-2">
-                    <Bookmark className="mt-0.5 size-3 shrink-0 text-gold" aria-hidden />
-                    <div className="min-w-0">
-                      <Link to={`/radar/${opportunity._id}`} className="line-clamp-1 text-[0.7rem] text-forest hover:underline">
-                        {opportunity.name}
-                      </Link>
-                      <p className="text-[0.58rem] text-muted-foreground">
-                        closes {formatDay(opportunity.registrationDeadline)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </aside>
-
-        {/* Results */}
-        <div className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <ArrowDownWideNarrow className="size-3.5" aria-hidden />
-                <label htmlFor="sort" className="sr-only">Sort by</label>
-                <select
-                  id="sort"
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as typeof sort)}
-                  className="rounded-full border border-border bg-card px-2.5 py-1.5 text-[0.7rem] text-forest"
-                >
-                  <option value="match">Best match</option>
-                  <option value="deadline">Closing soonest</option>
-                  <option value="name">Name A–Z</option>
-                </select>
-              </span>
-              {activeFilterCount > 0 && (
-                <span className="rounded-full bg-cream px-2 py-1 text-[0.65rem]">
-                  {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
-                </span>
-              )}
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 text-[0.68rem] lg:hidden"
-                onClick={() => setFiltersOpen((open) => !open)}
-              >
-                <Filter className="size-3.5" aria-hidden /> Filters
-              </button>
-            </div>
-            <div className="flex items-center rounded-full border border-border bg-card p-0.5">
-              {[
-                { value: "grid" as const, icon: LayoutGrid, label: "Grid view" },
-                { value: "list" as const, icon: List, label: "List view" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-label={option.label}
-                  aria-pressed={view === option.value}
-                  onClick={() => setView(option.value)}
-                  className={cn(
-                    "grid size-7 place-items-center rounded-full transition-colors",
-                    view === option.value ? "bg-forest text-ivory" : "text-forest/50 hover:text-forest",
-                  )}
-                >
-                  <option.icon className="size-3.5" aria-hidden />
-                </button>
+          </Field>
+          <Field label="Results" htmlFor="radar-limit">
+            <select
+              id="radar-limit"
+              value={limit}
+              onChange={(event) => setLimit(Number(event.target.value))}
+              className="h-10 w-full rounded-md border border-input bg-ivory/60 px-3 text-sm text-forest"
+            >
+              {[6, 12, 20].map((value) => (
+                <option key={value} value={value}>{value} results</option>
               ))}
+            </select>
+          </Field>
+          <Button type="submit" disabled={result.loading} className="h-10 rounded-full bg-forest px-5">
+            {result.loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Search className="size-4" aria-hidden />}
+            {result.loading ? "Searching" : "Search"}
+          </Button>
+        </form>
+
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-[0.62rem] uppercase tracking-[0.1em] text-muted-foreground">Try</span>
+          {SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => submit(suggestion)}
+              className="rounded-full border border-dashed border-border px-2.5 py-1 text-[0.65rem] text-forest/60 transition-colors hover:border-forest/30 hover:text-forest"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      </SectionCard>
+
+      {result.error && (
+        <div className="space-y-2">
+          <ErrorNote>{result.error}</ErrorNote>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={result.reload}>
+            <RotateCcw className="size-3.5" aria-hidden /> Try this search again
+          </Button>
+        </div>
+      )}
+
+      {result.loading && (
+        <div className="paper flex items-center gap-3 rounded-2xl px-5 py-8 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-forest/50" aria-hidden />
+          The backend is searching the live web. This can take a little longer while the service wakes up.
+        </div>
+      )}
+
+      {!query && !result.loading && (
+        <div className="paper rounded-2xl p-6">
+          <EmptyState
+            icon={RadarIcon}
+            title="Start with a specific search"
+            description="Narrow by theme, audience or technology. The backend adds current-date context to prioritise open events, but every hit remains a lead."
+          />
+        </div>
+      )}
+
+      {query && !result.loading && !result.error && data && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium text-forest">
+                {data.results.length} result{data.results.length === 1 ? "" : "s"} for “{data.query}”
+              </p>
+              <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+                Searched {searchedAt ?? "recently"} · TinyFish live web search
+              </p>
             </div>
+            <Button variant="outline" size="sm" className="rounded-full" onClick={reset}>
+              <RotateCcw className="size-3.5" aria-hidden /> Clear
+            </Button>
           </div>
 
-          {pendingSave && (
-            <p className="mb-2 flex items-center gap-1.5 text-[0.65rem] text-muted-foreground">
-              <Loader2 className="size-3 animate-spin" aria-hidden /> Updating saved opportunities…
-            </p>
-          )}
-
-          {filtered.length === 0 ? (
+          {data.results.length === 0 ? (
             <div className="paper rounded-2xl p-6">
               <EmptyState
-                icon={RadarIcon}
-                title="No opportunities match those filters"
-                description="Try widening the deadline window, removing a technology, or clearing your search."
+                icon={Search}
+                title="No usable results were returned"
+                description="Try a broader theme, remove an audience constraint, or search again. BuildScope will not fabricate a listing to fill the gap."
                 action={
-                  <Button variant="outline" size="sm" onClick={reset} className="rounded-full">
-                    <RotateCcw className="size-3.5" aria-hidden /> Reset filters
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={result.reload}>
+                    Search again
                   </Button>
                 }
               />
             </div>
           ) : (
-            <div className={cn("grid gap-3", view === "grid" && "sm:grid-cols-2 2xl:grid-cols-3")}>
-              {filtered.map(({ opportunity, match }) => (
-                <OpportunityCard
-                  key={opportunity._id}
-                  opportunity={opportunity}
-                  match={match}
-                  saved={savedIds.has(opportunity._id)}
-                  onToggleSave={() => void onToggleSave(opportunity._id)}
-                  view={view}
-                />
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {data.results.map((hit) => (
+                <li key={hit.id} className="paper flex flex-col rounded-2xl p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-peach/60 px-2 py-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-forest">
+                      <TriangleAlert className="size-3" aria-hidden /> Unverified lead
+                    </span>
+                    <span className="text-[0.58rem] text-muted-foreground">{hit.source}</span>
+                  </div>
+                  <h2 className="mt-2 font-display text-lg leading-snug text-forest">{hit.name}</h2>
+                  <p className="mt-1 line-clamp-3 text-[0.75rem] leading-5 text-charcoal/65">
+                    {hit.snippet || "No snippet returned. Open the original page for context."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <Tag tone="cream">
+                      <CalendarClock className="mr-1 size-3" aria-hidden /> Date not verified
+                    </Tag>
+                    <Tag tone="cream">Eligibility not verified</Tag>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+                    <span className="truncate text-[0.6rem] text-muted-foreground" title={hit.url}>
+                      {hit.url}
+                    </span>
+                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full text-[0.65rem]">
+                      <a href={hit.url} target="_blank" rel="noreferrer noopener">
+                        Open source <ExternalLink className="size-3" aria-hidden />
+                      </a>
+                    </Button>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-cream/40 px-3 py-2 text-[0.65rem] text-forest/55">
-            <Sparkles className="size-3.5 shrink-0" aria-hidden />
-            Eligibility and deadlines here are unverified demonstration data.
-            <span className="flex items-center gap-1">
-              <CalendarClock className="size-3" aria-hidden /> {formatDay(Date.now())} view
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="size-3" aria-hidden /> Location filters use record text
-            </span>
-          </div>
-        </div>
+          <SectionCard title="Retrieval notes" icon={Sparkles}>
+            <p className="text-[0.75rem] leading-6 text-charcoal/70">{data.note}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Tag tone="sage">Provider: TinyFish</Tag>
+              <Tag tone="lavender">Retrieved: {searchedAt ?? "time unavailable"}</Tag>
+              <Tag tone="peach">Status: unverified</Tag>
+            </div>
+            <p className="mt-3 rounded-lg bg-cream/60 px-3 py-2 text-[0.65rem] leading-5 text-forest/60">
+              BuildScope does not rank opportunities by an invented match score. Filter and compare
+              the source pages yourself before committing preparation time.
+            </p>
+          </SectionCard>
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-cream/40 px-3 py-2 text-[0.65rem] text-forest/55">
+        <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+        Always confirm registration status on the organiser's original page.
+        <span className="ml-auto flex items-center gap-1">
+          <CalendarClock className="size-3" aria-hidden /> Retrieval time is shown above
+        </span>
       </div>
     </div>
   );
 }
+

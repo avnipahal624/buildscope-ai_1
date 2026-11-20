@@ -34,7 +34,7 @@ export function Wordmark({
         <div className="leading-tight">
           <p className="font-display text-[1.35rem] text-ivory">BuildScope</p>
           <p className="text-[0.6rem] tracking-[0.19em] uppercase text-ivory/55">
-            Discover. Prepare. Prove.
+            Discover. Investigate. Prove.
           </p>
         </div>
       )}

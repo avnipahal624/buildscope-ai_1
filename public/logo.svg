@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 96.81 96.81"><rect width="96.81" height="96.81" rx="18"/><g fill="#fff"><rect x="24.67" y="24.67" width="47.47" height="11.87"/><rect x="24.67" y="36.54" width="11.87" height="35.61"/><rect x="40.06" y="39.98" width="23.74" height="11.87"/><rect x="40.06" y="51.85" width="11.87" height="20.3"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="BuildScope compass mark">
+  <rect width="512" height="512" rx="112" fill="#183B2E"/>
+  <circle cx="256" cy="256" r="166" fill="none" stroke="#D5B77A" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="256" cy="256" r="126" fill="none" stroke="#D5B77A" stroke-opacity="0.18" stroke-width="2"/>
+  <path d="M256 78c12 78 30 119 64 148 29 25 70 36 114 40-44 4-85 15-114 40-34 29-52 70-64 148-12-78-30-119-64-148-29-25-70-36-114-40 44-4 85-15 114-40 34-29 52-70 64-148Z" fill="#D5B77A"/>
+  <circle cx="256" cy="256" r="22" fill="#F8F3EA"/>
+</svg>

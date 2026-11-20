@@ -331,6 +331,55 @@
   }
 }
 
+@media print {
+  :root,
+  .dark {
+    --brand-forest: #183b2e;
+    --brand-forest-deep: #102c23;
+    --brand-forest-soft: #23503f;
+    --brand-ivory: #f8f3ea;
+    --brand-cream: #f1e9dc;
+    --brand-sage: #dce8d3;
+    --brand-sage-deep: #b9d0ad;
+    --brand-peach: #f6d1be;
+    --brand-peach-deep: #eeb99e;
+    --brand-lavender: #e8ddf2;
+    --brand-lavender-deep: #d8c8ea;
+    --brand-gold: #d5b77a;
+    --brand-charcoal: #252821;
+    --background: #ffffff;
+    --foreground: #252821;
+    --card: #ffffff;
+    --card-foreground: #252821;
+    --muted: #f1e9dc;
+    --muted-foreground: #5d635a;
+    --border: #d8d8d8;
+  }
+  .print-hide {
+    display: none !important;
+  }
+  .print-clean {
+    box-shadow: none !important;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+  .paper {
+    box-shadow: none !important;
+    border-color: #d8d8d8 !important;
+    break-inside: avoid;
+  }
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

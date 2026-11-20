@@ -26,7 +26,6 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks for large libraries
           'react-vendor': ['react', 'react-dom', 'react-router'],
-          'convex-vendor': ['convex'],
           // Large UI library chunks
           'radix-ui': [
             '@radix-ui/react-accordion',
@@ -83,7 +82,6 @@ export default defineConfig({
       'react-dom',
       'react-dom/client',
       'react-router',
-      '@convex-dev/auth/react',
       'framer-motion',
       // vlyPlugin() injects this import at serve time, so the dep scanner
       // never sees it. Without it here the first page load discovers it,
@@ -99,6 +97,27 @@ export default defineConfig({
     // Keep HMR on, but disable full-screen error overlay
     hmr: {
       overlay: false,
+    },
+    // The deployed FastAPI service allows only its own frontend origin. In
+    // development we proxy through Vite so the preview can call the real API
+    // without duplicating the backend or loosening its CORS configuration.
+    proxy: {
+      "/backend": {
+        target: process.env.BUILDSCOPE_API_TARGET ?? "https://buildscope-backend.onrender.com",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/backend/, ""),
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      "/backend": {
+        target: process.env.BUILDSCOPE_API_TARGET ?? "https://buildscope-backend.onrender.com",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/backend/, ""),
+      },
     },
   },
 });

@@ -1,32 +1,29 @@
-import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { deriveNotifications } from "@/lib/insights";
-import { initials } from "@/lib/format";
-import { useMutation, useQuery } from "convex/react";
+import { api } from "@/lib/api";
+import { useResource } from "@/hooks/use-resource";
 import {
   ArrowUpRight,
-  BarChart3,
-  Bell,
-  Bookmark,
-  BookOpen,
+  BookOpenCheck,
   ChevronLeft,
+  CircleHelp,
+  Compass,
   FolderKanban,
+  Github,
   LayoutDashboard,
-  Library,
-  LogOut,
   Menu,
+  Moon,
   PanelLeftClose,
   Radar,
+  RefreshCw,
   Search,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  User,
+  Server,
+  Sun,
+  TrendingUp,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -37,14 +34,6 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { CompassStar, Wordmark } from "@/components/decor/Scenes";
@@ -52,43 +41,30 @@ import { ToneIcon } from "@/components/common";
 
 const NAV = [
   {
-    label: "Workspace",
+    label: "Research",
     items: [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { to: "/radar", label: "Hackathon Radar", icon: Radar },
-      { to: "/roadmap", label: "Skill Roadmap", icon: BookOpen },
-      { to: "/credibility", label: "Credibility Checks", icon: ShieldCheck },
-      { to: "/projects", label: "My Projects", icon: FolderKanban },
-      { to: "/progress", label: "Progress Hub", icon: BarChart3 },
+      { to: "/projects", label: "Projects", icon: FolderKanban },
+      { to: "/prior-art", label: "Prior Art Lab", icon: Github },
     ],
   },
   {
-    label: "Resources",
+    label: "Evidence",
     items: [
-      { to: "/library", label: "Research Library", icon: Library },
-      { to: "/saved", label: "Saved Opportunities", icon: Bookmark },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { to: "/settings", label: "Settings", icon: Settings },
-      { to: "/profile", label: "Profile", icon: User },
+      { to: "/progress", label: "Research Progress", icon: TrendingUp },
+      { to: "/method", label: "Method & Limits", icon: BookOpenCheck },
     ],
   },
 ];
 
 const CONTEXT_ACTION: Record<string, { label: string; to: string }> = {
-  "/dashboard": { label: "Find opportunities", to: "/radar" },
-  "/radar": { label: "Saved opportunities", to: "/saved" },
-  "/roadmap": { label: "Choose a target", to: "/radar" },
-  "/credibility": { label: "Run a check", to: "/credibility?run=1" },
+  "/dashboard": { label: "Open projects", to: "/projects" },
+  "/radar": { label: "Search live listings", to: "/radar?search=1" },
   "/projects": { label: "New project", to: "/projects?new=1" },
-  "/progress": { label: "Generate report", to: "/progress?report=1" },
-  "/library": { label: "Browse the radar", to: "/radar" },
-  "/saved": { label: "Browse the radar", to: "/radar" },
-  "/settings": { label: "Go to overview", to: "/dashboard" },
-  "/profile": { label: "Go to overview", to: "/dashboard" },
+  "/prior-art": { label: "Search repositories", to: "/prior-art?search=1" },
+  "/progress": { label: "Open a project", to: "/projects" },
+  "/method": { label: "Back to overview", to: "/dashboard" },
 };
 
 function NavItems({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
@@ -96,9 +72,7 @@ function NavItems({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
     <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 no-scrollbar" aria-label="Main">
       {NAV.map((group) => (
         <div key={group.label}>
-          {!collapsed && (
-            <p className="label-caps mb-2 px-3 text-ivory/40">{group.label}</p>
-          )}
+          {!collapsed && <p className="label-caps mb-2 px-3 text-ivory/40">{group.label}</p>}
           {collapsed && <div className="mx-2 mb-2 h-px bg-ivory/10" aria-hidden />}
           <ul className="space-y-1">
             {group.items.map((item) => (
@@ -120,7 +94,10 @@ function NavItems({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
                   {({ isActive }) => (
                     <>
                       <item.icon
-                        className={cn("size-[1.05rem] shrink-0", isActive ? "text-forest" : "text-ivory/60 group-hover:text-ivory")}
+                        className={cn(
+                          "size-[1.05rem] shrink-0",
+                          isActive ? "text-forest" : "text-ivory/60 group-hover:text-ivory",
+                        )}
                         aria-hidden
                       />
                       {!collapsed && <span className="truncate">{item.label}</span>}
@@ -153,15 +130,15 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
       </svg>
       <div className="relative">
         <p className="font-display text-[1.05rem] leading-snug text-ivory">
-          Build smarter.
+          Investigate first.
           <br />
-          Aim higher.
+          Build with evidence.
         </p>
         <Link
-          to="/roadmap"
+          to="/method"
           className="mt-2 inline-flex items-center gap-1 text-[0.65rem] uppercase tracking-[0.14em] text-gold"
         >
-          Your roadmap <ArrowUpRight className="size-3" aria-hidden />
+          How evidence works <ArrowUpRight className="size-3" aria-hidden />
         </Link>
       </div>
     </div>
@@ -169,7 +146,6 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
 }
 
 export function AppShell() {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(() => {
@@ -178,56 +154,20 @@ export function AppShell() {
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const seeded = useRef(false);
-  const ensureCatalog = useMutation(api.opportunities.ensureCatalog);
-
-  const opportunities = useQuery(api.opportunities.list);
-  const projects = useQuery(api.projects.list);
-  const savedRows = useQuery(api.opportunities.saved);
-  const roadmap = useQuery(api.roadmap.state);
-  const repoChecks = useQuery(api.projects.repoCheckList);
-
-  const derived = deriveNotifications({
-    saved: savedRows ?? [],
-    tasks: roadmap?.tasks ?? [],
-    projects: (projects ?? []).map((entry) => entry.project),
-    repoChecks: repoChecks ?? [],
-    onboardingComplete: user?.onboardingComplete,
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return window.localStorage.getItem("buildscope:theme") === "dark" ? "dark" : "light";
   });
-  const filteredNotifications = derived.filter((item) => {
-    if (user?.notificationPrefs?.deadlines === false && item.id.startsWith("deadline-"))
-      return false;
-    if (user?.notificationPrefs?.roadmap === false && item.id.startsWith("task-"))
-      return false;
-    return true;
-  });
-  const notifications =
-    filteredNotifications.length > 0
-      ? filteredNotifications
-      : [
-          {
-            id: "prefs-quiet",
-            title: "No signals with these preferences",
-            detail: "Deadline and roadmap reminders are switched off in Settings.",
-            href: "/settings",
-            tone: "success" as const,
-          },
-        ];
 
-  // Seed the clearly-labelled demonstration catalogue exactly once per session.
-  useEffect(() => {
-    if (seeded.current) return;
-    seeded.current = true;
-    void ensureCatalog().catch(() => {
-      // A failed seed is non-fatal; the UI shows its empty state.
-    });
-  }, [ensureCatalog]);
+  const projects = useResource((signal) => api.listProjects(signal), []);
+  const health = useResource((signal) => api.health(signal), []);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (user?.theme === "dark") root.classList.add("dark");
+    if (theme === "dark") root.classList.add("dark");
     else root.classList.remove("dark");
-  }, [user?.theme]);
+    window.localStorage.setItem("buildscope:theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -248,12 +188,8 @@ export function AppShell() {
     });
   };
 
-  const action = CONTEXT_ACTION[location.pathname] ?? { label: "Open radar", to: "/radar" };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
+  const action = CONTEXT_ACTION[location.pathname] ?? { label: "Open projects", to: "/projects" };
+  const apiOnline = health.data?.status === "ok" && !health.error;
 
   return (
     <div className="min-h-screen bg-background">
@@ -264,10 +200,9 @@ export function AppShell() {
         Skip to content
       </a>
 
-      {/* Desktop sidebar */}
       <aside
         className={cn(
-          "brand-dark fixed inset-y-0 left-0 z-30 hidden flex-col bg-forest text-ivory transition-[width] duration-300 lg:flex",
+          "brand-dark print-hide fixed inset-y-0 left-0 z-30 hidden flex-col bg-forest text-ivory transition-[width] duration-300 lg:flex",
           collapsed ? "w-[76px]" : "w-[248px]",
         )}
       >
@@ -288,9 +223,7 @@ export function AppShell() {
         {!collapsed && (
           <div className="mx-4 mb-5 rounded-xl border border-ivory/10 bg-forest-deep/60 px-3 py-2">
             <p className="text-[0.6rem] uppercase tracking-[0.16em] text-ivory/45">Workspace</p>
-            <p className="mt-0.5 truncate text-xs text-ivory/80">
-              {user?.college || "Student workspace"}
-            </p>
+            <p className="mt-0.5 truncate text-xs text-ivory/80">Shared research service</p>
           </div>
         )}
 
@@ -311,8 +244,13 @@ export function AppShell() {
         </button>
       </aside>
 
-      <div className={cn("transition-[padding] duration-300", collapsed ? "lg:pl-[76px]" : "lg:pl-[248px]")}>
-        <header className="sticky top-0 z-20 border-b border-border/60 bg-background/95">
+      <div
+        className={cn(
+          "transition-[padding] duration-300 print:pl-0",
+          collapsed ? "lg:pl-[76px]" : "lg:pl-[248px]",
+        )}
+      >
+        <header className="print-hide sticky top-0 z-20 border-b border-border/60 bg-background/95">
           <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-3 sm:gap-3 sm:px-5 lg:px-7">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -336,7 +274,7 @@ export function AppShell() {
               className="flex h-10 flex-1 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-left text-sm text-muted-foreground transition-colors hover:border-forest/25 sm:max-w-[420px]"
             >
               <Search className="size-4 shrink-0" aria-hidden />
-              <span className="truncate">Search for hackathons, skills, or projects…</span>
+              <span className="truncate">Search pages and projects…</span>
               <kbd className="ml-auto hidden rounded border border-border bg-cream px-1.5 py-0.5 text-[0.6rem] text-muted-foreground sm:block">
                 ⌘ K
               </kbd>
@@ -349,99 +287,89 @@ export function AppShell() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-                    <Bell className="size-[1.15rem]" />
-                    {notifications.some((item) => item.tone === "urgent") && (
-                      <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-background" />
-                    )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative"
+                    aria-label={apiOnline ? "Research API connected" : "Research API status"}
+                  >
+                    {apiOnline ? <Wifi className="size-[1.1rem]" /> : <WifiOff className="size-[1.1rem]" />}
+                    <span
+                      className={cn(
+                        "absolute right-2 top-2 size-2 rounded-full ring-2 ring-background",
+                        health.loading ? "bg-gold" : apiOnline ? "bg-sage-deep" : "bg-destructive",
+                      )}
+                      aria-hidden
+                    />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-[320px] border-border bg-card p-0">
-                  <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
-                    <p className="font-display text-base text-forest">Notifications</p>
-                    <span className="label-caps text-muted-foreground">Live from your data</span>
+                <PopoverContent align="end" className="w-[310px] border-border bg-card p-0">
+                  <div className="flex items-center gap-2 border-b border-border/70 px-4 py-3">
+                    <Server className="size-4 text-forest/60" aria-hidden />
+                    <p className="font-display text-base text-forest">FastAPI connection</p>
                   </div>
-                  <ul className="max-h-[320px] divide-y divide-border/60 overflow-y-auto">
-                    {notifications.map((item) => (
-                      <li key={item.id}>
-                        <Link
-                          to={item.href}
-                          className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-cream/60"
-                        >
-                          <span
-                            className={cn(
-                              "mt-1 size-2 shrink-0 rounded-full",
-                              item.tone === "urgent" ? "bg-destructive" : item.tone === "success" ? "bg-sage-deep" : "bg-gold",
-                            )}
-                            aria-hidden
-                          />
-                          <span>
-                            <span className="block text-xs font-semibold text-forest">{item.title}</span>
-                            <span className="mt-0.5 block text-[0.7rem] leading-5 text-muted-foreground">{item.detail}</span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="space-y-2 px-4 py-3 text-[0.72rem] leading-5">
+                    <p className={cn("font-medium", apiOnline ? "text-forest" : "text-destructive")}>
+                      {health.loading
+                        ? "Checking the research service…"
+                        : apiOnline
+                          ? "Connected"
+                          : "Not reachable right now"}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Projects, research jobs, evidence, prior art and proof-chain checks come from
+                      the existing FastAPI service.
+                    </p>
+                    {health.error && <p className="text-destructive">{health.error}</p>}
+                    <p className="rounded-lg bg-cream/70 px-2.5 py-2 text-[0.65rem] leading-4 text-forest/60">
+                      The deployed API is shared and currently has no account system. Treat projects
+                      as a public workspace.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full rounded-full"
+                      onClick={health.reload}
+                    >
+                      <RefreshCw className={cn("size-3.5", health.loading && "animate-spin")} aria-hidden />
+                      Check again
+                    </Button>
+                  </div>
                 </PopoverContent>
               </Popover>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="ml-1 flex items-center gap-2 rounded-full p-0.5 pr-1 transition-colors hover:bg-cream"
-                    aria-label="Profile menu"
-                  >
-                    <Avatar className="size-9 border border-forest/10">
-                      <AvatarFallback className="bg-forest text-[0.7rem] font-semibold text-ivory">
-                        {initials(user?.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden text-xs font-medium text-forest sm:block">
-                      {user?.name?.split(" ")[0] ?? "Student"}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 border-border bg-card">
-                  <DropdownMenuLabel>
-                    <span className="block text-xs font-semibold text-forest">{user?.name ?? "Student"}</span>
-                    <span className="block truncate text-[0.65rem] font-normal text-muted-foreground">
-                      {user?.email ?? "Signed in"}
-                    </span>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/progress">Progress report</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                    <LogOut className="mr-2 size-4" aria-hidden /> Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}
+              >
+                {theme === "dark" ? <Sun className="size-[1.1rem]" /> : <Moon className="size-[1.1rem]" />}
+              </Button>
+
+              <Button asChild variant="ghost" size="icon" className="lg:hidden" aria-label="Method and limits">
+                <Link to="/method">
+                  <CircleHelp className="size-[1.1rem]" />
+                </Link>
+              </Button>
             </div>
           </div>
         </header>
 
-        <main id="workspace-main" className="mx-auto max-w-[1440px] px-3 pb-14 pt-5 sm:px-5 lg:px-7">
+        <main id="workspace-main" className="mx-auto max-w-[1440px] px-3 pb-14 pt-5 sm:px-5 lg:px-7 print:max-w-none print:p-0">
           <Outlet />
         </main>
 
-        <footer className="mx-auto flex max-w-[1440px] flex-col gap-2 px-4 pb-8 text-[0.68rem] text-muted-foreground sm:px-7 sm:flex-row sm:items-center sm:justify-between">
-          <p>BuildScope AI — discover, prepare, prove.</p>
-          <p>Demo catalogue records are labelled and never presented as live listings.</p>
+        <footer className="print-hide mx-auto flex max-w-[1440px] flex-col gap-2 px-4 pb-8 text-[0.68rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <p>BuildScope AI — investigate, validate, build, prove.</p>
+          <p>Research runs on the existing FastAPI service. No accounts are available in this backend version.</p>
         </footer>
       </div>
 
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Search pages, opportunities and projects…" />
+        <CommandInput placeholder="Search pages and projects…" />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Workspace">
@@ -460,28 +388,13 @@ export function AppShell() {
             ))}
           </CommandGroup>
           <CommandSeparator />
-          <CommandGroup heading="Opportunities">
-            {(opportunities ?? []).slice(0, 6).map((opportunity) => (
-              <CommandItem
-                key={opportunity._id}
-                value={`${opportunity.name} ${opportunity.domain}`}
-                onSelect={() => {
-                  navigate(`/radar/${opportunity._id}`);
-                  setSearchOpen(false);
-                }}
-              >
-                <Sparkles className="mr-2 size-4 text-gold" aria-hidden />
-                <span className="truncate">{opportunity.name}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
           <CommandGroup heading="Projects">
-            {(projects ?? []).slice(0, 6).map(({ project }) => (
+            {(projects.data ?? []).map((project) => (
               <CommandItem
-                key={project._id}
-                value={project.name}
+                key={project.id}
+                value={`${project.name} ${project.keywords.join(" ")}`}
                 onSelect={() => {
-                  navigate(`/projects/${project._id}`);
+                  navigate(`/projects/${project.id}`);
                   setSearchOpen(false);
                 }}
               >
@@ -489,12 +402,15 @@ export function AppShell() {
                 <span className="truncate">{project.name}</span>
               </CommandItem>
             ))}
+            {!projects.loading && (projects.data ?? []).length === 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">No projects yet.</div>
+            )}
           </CommandGroup>
           <CommandSeparator />
           <div className="px-3 py-2">
             <div className="flex items-center gap-2 rounded-lg bg-cream/70 px-3 py-2 text-[0.68rem] text-muted-foreground">
-              <ToneIcon icon={ShieldCheck} tone="sage" className="size-6" />
-              Evidence checks never score a project as stolen from similarity alone.
+              <ToneIcon icon={Compass} tone="sage" className="size-6" />
+              Similarity signals prioritise research. They never prove originality.
             </div>
           </div>
         </CommandList>

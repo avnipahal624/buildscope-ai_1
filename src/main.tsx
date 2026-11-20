@@ -1,30 +1,21 @@
 import "@vly-ai/integrations";
 import { Toaster } from "@/components/ui/sonner";
-import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
 const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Radar = lazy(() => import("./pages/Radar.tsx"));
-const OpportunityDetail = lazy(() => import("./pages/OpportunityDetail.tsx"));
-const Roadmap = lazy(() => import("./pages/Roadmap.tsx"));
-const Credibility = lazy(() => import("./pages/Credibility.tsx"));
 const Projects = lazy(() => import("./pages/Projects.tsx"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail.tsx"));
+const PassportPage = lazy(() => import("./pages/Passport.tsx"));
+const PriorArt = lazy(() => import("./pages/PriorArt.tsx"));
 const Progress = lazy(() => import("./pages/Progress.tsx"));
-const Library = lazy(() => import("./pages/Library.tsx"));
-const Saved = lazy(() => import("./pages/Saved.tsx"));
-const Settings = lazy(() => import("./pages/Settings.tsx"));
-const Profile = lazy(() => import("./pages/Profile.tsx"));
+const Method = lazy(() => import("./pages/Method.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -76,9 +67,7 @@ class RootErrorBoundary extends React.Component<
         <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
           <div className="max-w-lg text-center">
             <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 break-words text-xs text-muted-foreground">
-              {this.state.message}
-            </p>
+            <p className="mt-2 break-words text-xs text-muted-foreground">{this.state.message}</p>
             {this.state.stack && (
               <pre className="mt-3 max-h-40 overflow-auto rounded border border-border/60 p-2 text-left text-[10px] leading-4 text-muted-foreground/80">
                 {this.state.stack}
@@ -91,8 +80,6 @@ class RootErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 function RouteSyncer() {
   const location = useLocation();
@@ -123,47 +110,26 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-              <Route
-                path="/onboarding"
-                element={
-                  <RequireAuth redirectImmediately>
-                    <Onboarding />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                element={
-                  <RequireAuth redirectImmediately>
-                    <AppShell />
-                  </RequireAuth>
-                }
-              >
-                <Route path="/dashboard" element={<Overview />} />
-                <Route path="/radar" element={<Radar />} />
-                <Route path="/radar/:opportunityId" element={<OpportunityDetail />} />
-                <Route path="/roadmap" element={<Roadmap />} />
-                <Route path="/credibility" element={<Credibility />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/projects/:projectId" element={<ProjectDetail />} />
-                <Route path="/progress" element={<Progress />} />
-                <Route path="/library" element={<Library />} />
-                <Route path="/saved" element={<Saved />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster />
-      </ConvexAuthProvider>
+      <BrowserRouter>
+        <RouteSyncer />
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route element={<AppShell />}>
+              <Route path="/dashboard" element={<Overview />} />
+              <Route path="/radar" element={<Radar />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/projects/:projectId/passport" element={<PassportPage />} />
+              <Route path="/prior-art" element={<PriorArt />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/method" element={<Method />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+      <Toaster />
     </RootErrorBoundary>
   </StrictMode>,
 );

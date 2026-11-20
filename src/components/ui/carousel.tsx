@@ -93,7 +93,9 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
+    // The carousel API is an external store; report its initial selection
+    // after the effect has finished rather than cascading a render in the effect.
+    queueMicrotask(() => onSelect(api))
     api.on("reInit", onSelect)
     api.on("select", onSelect)
 
