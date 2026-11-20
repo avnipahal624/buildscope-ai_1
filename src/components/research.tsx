@@ -1,4 +1,4 @@
-import type { Evidence, ProjectComparison, ResearchJob, SimilarProject } from "@/lib/api";
+import { api, type Evidence, type ProjectComparison, type ResearchJob, type SimilarProject } from "@/lib/api";
 import { useJobPolling } from "@/hooks/use-resource";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
   TriangleAlert,
   XCircle,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Tag } from "@/components/common";
 
 const TERMINAL = new Set(["completed", "completed_with_errors", "failed"]);
@@ -45,9 +45,11 @@ export function ResearchJobMonitor({
 }: {
   jobId: string | null;
   label: string;
+  projectId?: string;
   onTerminal?: (job: ResearchJob) => void;
 }) {
   const { job, error, loading } = useJobPolling(jobId);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     if (job && TERMINAL.has(job.status)) onTerminal?.(job);
@@ -104,9 +106,10 @@ export function ResearchJobMonitor({
       )}
 
       {job.error && (
-        <p className="mt-2 rounded-lg bg-destructive/5 px-2.5 py-2 text-[0.68rem] leading-5 text-destructive">
-          {job.error}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive/5 px-2.5 py-2 text-[0.68rem] leading-5 text-destructive">
+          <p>{job.error}</p>
+          {job.status === "failed" && <button type="button" disabled={retrying} onClick={async () => { setRetrying(true); try { const next = await api.retryJob(job.id); if (projectId) window.sessionStorage.setItem(`buildscope:job:${label === "research" ? "research" : "stakeholders"}:${projectId}`, next.job_id); window.location.reload(); } finally { setRetrying(false); } }} className="rounded-md border border-destructive/25 px-2 py-1 font-medium hover:bg-destructive/10 disabled:opacity-50">{retrying ? "Retrying…" : "Retry research"}</button>}
+        </div>
       )}
 
       {job.log.length > 0 && (
