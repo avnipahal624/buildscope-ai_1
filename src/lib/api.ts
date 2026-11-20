@@ -18,6 +18,7 @@ export const API_BASE_LABEL = configuredBase
 
 export type JobStatus = "pending" | "running" | "completed" | "completed_with_errors" | "failed";
 export type AuthSession = { access_token: string; token_type: string; user: { id: string; email: string } };
+export type ResearchProviderStatus = { provider: string; configured: boolean; search_available: boolean; fetch_available: boolean; note: string };
 
 export type Project = {
   id: string;
@@ -360,6 +361,7 @@ export const api = {
 
   listResearchRuns: (projectId: string, signal?: AbortSignal) =>
     request<ResearchJob[]>(`/api/projects/${encodeURIComponent(projectId)}/research-runs`, { signal }),
+  researchProviderStatus: (signal?: AbortSignal) => request<ResearchProviderStatus>("/api/research/provider-status", { signal }),
 
   listSimilarProjects: (projectId: string, signal?: AbortSignal) =>
     request<SimilarProject[]>(
