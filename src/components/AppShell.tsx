@@ -404,7 +404,7 @@ export function AppShell() {
 
         <footer className="print-hide mx-auto flex max-w-[1440px] flex-col gap-2 px-4 pb-8 text-[0.68rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <p>BuildScope AI — investigate, validate, build, prove.</p>
-          <p>Research runs on the existing FastAPI service. No accounts are available in this backend version.</p>
+          <p>Research runs on the authenticated FastAPI service. Projects are scoped to your account.</p>
         </footer>
       </div>
 
