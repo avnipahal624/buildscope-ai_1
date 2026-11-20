@@ -17,6 +17,7 @@ export const API_BASE_LABEL = configuredBase
     : "https://buildscope-backend.onrender.com";
 
 export type JobStatus = "pending" | "running" | "completed" | "completed_with_errors" | "failed";
+export type AuthSession = { access_token: string; token_type: string; user: { id: string; email: string } };
 
 export type Project = {
   id: string;
@@ -264,6 +265,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       method,
       headers: {
         Accept: "application/json",
+        ...(localStorage.getItem("buildscope:token") ? { Authorization: `Bearer ${localStorage.getItem("buildscope:token")}` } : {}),
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -328,6 +330,9 @@ export function errorMessage(error: unknown): string {
 }
 
 export const api = {
+  login: (email: string, password: string) => request<AuthSession>("/api/auth/login", { method: "POST", body: { email, password }, timeoutMs: 20_000 }),
+  register: (email: string, password: string) => request<AuthSession>("/api/auth/register", { method: "POST", body: { email, password }, timeoutMs: 20_000 }),
+  me: (signal?: AbortSignal) => request<{ id: string; email: string }>("/api/auth/me", { signal, timeoutMs: 20_000 }),
   health: (signal?: AbortSignal) => request<{ status: string }>("/health", { signal, timeoutMs: 20_000 }),
 
   listProjects: (signal?: AbortSignal) => request<Project[]>("/api/projects", { signal }),
