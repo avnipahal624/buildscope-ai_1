@@ -48,6 +48,7 @@ const NAV = [
     items: [
       { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { to: "/radar", label: "Hackathon Radar", icon: Radar },
+      { to: "/research", label: "Research Intelligence", icon: Search },
       { to: "/projects", label: "Projects", icon: FolderKanban },
       { to: "/prior-art", label: "Prior Art Lab", icon: Github },
       { to: "/similarity", label: "Similarity Intelligence", icon: TrendingUp },
