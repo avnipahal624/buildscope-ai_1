@@ -16,6 +16,10 @@ const PassportPage = lazy(() => import("./pages/Passport.tsx"));
 const PriorArt = lazy(() => import("./pages/PriorArt.tsx"));
 const Progress = lazy(() => import("./pages/Progress.tsx"));
 const Method = lazy(() => import("./pages/Method.tsx"));
+const EvidenceLedger = lazy(() => import("./pages/EvidenceLedger.tsx"));
+const ProblemValidation = lazy(() => import("./pages/ProblemValidation.tsx"));
+const SimilarityIntelligence = lazy(() => import("./pages/SimilarityIntelligence.tsx"));
+const CompetitorAnalysis = lazy(() => import("./pages/CompetitorAnalysis.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function RouteLoading() {
@@ -124,6 +128,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/prior-art" element={<PriorArt />} />
               <Route path="/progress" element={<Progress />} />
               <Route path="/method" element={<Method />} />
+            <Route path="/evidence" element={<EvidenceLedger />} />
+            <Route path="/validation" element={<ProblemValidation />} />
+            <Route path="/similarity" element={<SimilarityIntelligence />} />
+            <Route path="/competitors" element={<CompetitorAnalysis />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
