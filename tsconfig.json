@@ -23,5 +23,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["main.ts", "vly-toolbar-readonly.tsx"]
 }
