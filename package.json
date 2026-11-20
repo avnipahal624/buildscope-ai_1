@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint src/App.tsx src/lib/api.ts src/main.tsx",
+    "lint": "eslint src/App.tsx src/lib/api.ts src/components/ResearchWorkspace.tsx src/main.tsx",
     "preview": "vite preview"
   },
   "dependencies": {

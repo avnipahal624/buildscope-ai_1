@@ -39,7 +39,7 @@ VITE_API_BASE_URL=http://localhost:8000
 
 4. Run `bun run dev` (or `npm run dev`).
 
-For deployment, set `VITE_API_BASE_URL` to the deployed FastAPI origin and configure backend CORS to allow the frontend domain.
+For deployment, set `VITE_API_BASE_URL` to the deployed FastAPI origin and set `FRONTEND_ORIGIN` on the backend to the exact frontend origin. The backend permits localhost:5173 for development. Provide the backend with its database, TinyFish and LLM credentials through backend-only environment variables; never put these keys in Vite. Deploy the backend branch `feat/fastapi-buildability-passport` before using this frontend branch.
 
 ## Important backend constraints
 
@@ -51,7 +51,7 @@ For deployment, set `VITE_API_BASE_URL` to the deployed FastAPI origin and confi
 
 ## Buildability Passport
 
-The Passport is a structured view over the backend project report and opportunity records. It surfaces comparable work, evidence, inferred needs, and opportunities with a clear review checklist. It deliberately avoids inventing a readiness score: missing evidence remains missing, and human validation is explicit.
+The Passport is a structured view over the backend project report, the dedicated evidence endpoint, and persisted opportunity proof chains. The Print / Save PDF button invokes the browser print dialog with a dedicated print stylesheet. It surfaces comparable work, evidence, inferred needs, and opportunities with a clear review checklist. It deliberately avoids inventing a readiness score: missing evidence remains missing, and human validation is explicit.
 
 ## Environment
 

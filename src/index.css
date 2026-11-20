@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "@fontsource/dm-serif-display/400.css";
 @import "@fontsource/dm-serif-display/400-italic.css";
 @import "@fontsource-variable/dm-sans/index.css";
@@ -343,4 +342,15 @@
   .tilt {
     transform: none !important;
   }
+}
+@media print {
+  @page { size: A4; margin: 16mm; }
+  body { background: white !important; color: #203b31 !important; print-color-adjust: exact; }
+  aside, header, nav, .print-hide { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .app-content { padding-left: 0 !important; }
+  .passport section, .passport li { break-inside: avoid; box-shadow: none !important; }
+  .passport ul { max-height: none !important; overflow: visible !important; }
+  .passport a { overflow-wrap: anywhere; }
+  .passport a[href]:after { content: " (" attr(href) ")"; font-size: 9px; }
 }
