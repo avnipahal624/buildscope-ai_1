@@ -495,7 +495,7 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
         </div>
         {error && <ErrorNote>{error}</ErrorNote>}
         <div className="mt-3">
-          <ResearchJobMonitor jobId={jobId} label="research" onTerminal={() => onReload()} />
+          <ResearchJobMonitor jobId={jobId} projectId={data.project.id} label="research" onTerminal={() => onReload()} />
         </div>
         <InfoNote tone="peach" className="mt-3">
           If the job fails or returns partial results, BuildScope does not fill the gaps with fabricated projects.
@@ -661,7 +661,7 @@ function EvidenceTab({ data, onReload }: { data: Data; onReload: () => void }) {
           </p>
 
           <div className="mt-3">
-            <ResearchJobMonitor jobId={stakeholderJobId} label="stakeholder analysis" onTerminal={() => onReload()} />
+            <ResearchJobMonitor jobId={stakeholderJobId} projectId={data.project.id} label="stakeholder analysis" onTerminal={() => onReload()} />
           </div>
 
           {error && <ErrorNote>{error}</ErrorNote>}
