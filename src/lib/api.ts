@@ -284,8 +284,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     }
 
     if (!response.ok) {
-      // Clear expired sessions after backend secret rotation and return to login.
-      if (response.status === 401 && !path.startsWith("/api/auth/") && localStorage.getItem("buildscope:token")) {
+      // A token can outlive a backend redeploy or secret rotation. Clear it
+      // and return the user to the login gate instead of leaving the shell in
+      // a misleading "service unavailable" state.
+      if (response.status === 401 && !path.startsWith("/api/auth/")) {
         localStorage.removeItem("buildscope:token");
         if (typeof window !== "undefined") window.location.assign("/dashboard");
       }
@@ -363,6 +365,9 @@ export const api = {
 
   getJob: (jobId: string, signal?: AbortSignal) =>
     request<ResearchJob>(`/api/jobs/${encodeURIComponent(jobId)}`, { signal, timeoutMs: 25_000 }),
+
+  retryJob: (jobId: string) =>
+    request<{ job_id: string; status: string }>(`/api/jobs/${encodeURIComponent(jobId)}/retry`, { method: "POST", timeoutMs: 30_000 }),
 
   listResearchRuns: (projectId: string, signal?: AbortSignal) =>
     request<ResearchJob[]>(`/api/projects/${encodeURIComponent(projectId)}/research-runs`, { signal }),
