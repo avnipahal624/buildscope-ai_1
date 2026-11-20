@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { useResource } from "@/hooks/use-resource";
 import {
   ArrowUpRight,
@@ -23,6 +23,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import type React from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,6 +159,11 @@ export function AppShell() {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("buildscope:theme") === "dark" ? "dark" : "light";
   });
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
 
   const projects = useResource((signal) => api.listProjects(signal), []);
   const health = useResource((signal) => api.health(signal), []);
@@ -190,6 +196,33 @@ export function AppShell() {
 
   const action = CONTEXT_ACTION[location.pathname] ?? { label: "Open projects", to: "/projects" };
   const apiOnline = health.data?.status === "ok" && !health.error;
+
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("buildscope:token") : null;
+  if (!token) {
+    const submitAuth = async (event: React.FormEvent) => {
+      event.preventDefault();
+      setAuthBusy(true); setAuthError("");
+      try {
+        const session = authMode === "login" ? await api.login(authEmail, authPassword) : await api.register(authEmail, authPassword);
+        window.localStorage.setItem("buildscope:token", session.access_token);
+        window.location.reload();
+      } catch (error) {
+        setAuthError(errorMessage(error));
+      } finally { setAuthBusy(false); }
+    };
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <form onSubmit={submitAuth} className="paper w-full max-w-md space-y-5 rounded-3xl p-7 shadow-sm">
+          <div><p className="label-caps text-forest/50">Private workspace</p><h1 className="mt-2 font-display text-3xl text-forest">{authMode === "login" ? "Sign in to BuildScope" : "Create your BuildScope account"}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Your investigations are isolated to your account.</p></div>
+          <label className="block text-sm">Email<input required type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2" /></label>
+          <label className="block text-sm">Password<input required minLength={8} type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2" /></label>
+          {authError && <p role="alert" className="text-sm text-destructive">{authError}</p>}
+          <button disabled={authBusy} className="w-full rounded-full bg-forest px-4 py-2.5 text-sm font-medium text-ivory disabled:opacity-60">{authBusy ? "Working…" : authMode === "login" ? "Sign in" : "Create account"}</button>
+          <button type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")} className="w-full text-sm text-forest underline underline-offset-4">{authMode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}</button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
