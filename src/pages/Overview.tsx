@@ -32,6 +32,7 @@ import {
   ToneIcon,
 } from "@/components/common";
 import { Button } from "@/components/ui/button";
+import { InvestigationTrail } from "@/components/InvestigationTrail";
 
 type Entry = {
   project: Project;
@@ -70,19 +71,6 @@ export default function Overview() {
   const workspace = useResource((signal) => loadWorkspace(signal), []);
 
   const entries = workspace.data ?? [];
-  const totals = useMemo(() => {
-    const evidence = entries.reduce((sum, entry) => sum + entry.evidence.length, 0);
-    const landscape = entries.reduce(
-      (sum, entry) => sum + (entry.report?.similar_projects.length ?? 0),
-      0,
-    );
-    const requirements = entries.reduce((sum, entry) => sum + entry.requirements.length, 0);
-    const investigated = entries.filter(
-      (entry) => (entry.report?.similar_projects.length ?? 0) > 0,
-    ).length;
-    return { evidence, landscape, requirements, investigated };
-  }, [entries]);
-
   const actions = useMemo(() => {
     if (entries.length === 0) {
       return [
@@ -252,7 +240,7 @@ export default function Overview() {
           <p className="label-caps text-forest/70">BuildScope / Investigation case file</p>
           <span className="text-xs text-forest/60">{entries.length} project{entries.length === 1 ? "" : "s"} in this workspace</span>
         </div>
-        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.8fr)]">
+        <div className="p-5 sm:p-7">
           <div>
             <p className="label-caps text-forest/50">Current investigation</p>
             <h1 className="mt-2 font-display text-3xl leading-tight text-forest sm:text-4xl">
@@ -270,15 +258,12 @@ export default function Overview() {
               {entries[0] && <Button asChild size="sm" variant="outline"><Link to="/projects?new=1"><Plus className="size-3.5" aria-hidden /> New investigation</Link></Button>}
             </div>
           </div>
-          <div className="border-t border-forest/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-            <p className="label-caps text-forest/50">Recorded coverage</p>
-            <dl className="mt-2 divide-y divide-forest/10 text-sm">
-              {[["Investigated projects", totals.investigated], ["Comparable projects", totals.landscape], ["Evidence excerpts", totals.evidence], ["Project requirements", totals.requirements]].map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-3 py-2"><dt className="text-charcoal/65">{label}</dt><dd className="tnum font-semibold text-forest">{value}</dd></div>
-              ))}
-            </dl>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">Counts come from stored records. Open the case file to inspect sources and unresolved questions.</p>
-          </div>
+          {entries[0] && (
+            <div className="mt-6 border-t border-forest/15 pt-5">
+              <InvestigationTrail projectId={entries[0].project.id} report={entries[0].report} evidence={entries[0].evidence} requirements={entries[0].requirements} failures={entries[0].failures} />
+              {entries[0].failures.length > 0 && <p className="mt-4 text-xs text-destructive">Some records could not be loaded. Open the case file for details.</p>}
+            </div>
+          )}
         </div>
       </section>
 
@@ -425,6 +410,9 @@ export default function Overview() {
         </SectionCard>
       </section>
 
+      <details className="group rounded-2xl border border-forest/15 bg-card/50 p-4">
+        <summary className="cursor-pointer text-sm font-medium text-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest">Explore research activity, sources and methods <span className="ml-2 text-forest/50 group-open:hidden">↓</span></summary>
+        <div className="mt-4 space-y-4">
       <section className="grid gap-4 lg:grid-cols-12">
         <SectionCard
           title="Latest research activity"
@@ -598,6 +586,8 @@ export default function Overview() {
         <Loader2 className="hidden size-3" aria-hidden />
         Every figure on this page is computed from the FastAPI research service.
       </div>
+        </div>
+      </details>
     </div>
   );
 }
