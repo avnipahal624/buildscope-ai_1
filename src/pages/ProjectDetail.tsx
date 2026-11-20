@@ -65,6 +65,7 @@ import {
 } from "@/components/common";
 import { EvidenceRow, ReadinessList, ResearchJobMonitor, SimilarProjectCard } from "@/components/research";
 import { ResearchFunnel } from "@/components/ResearchVisuals";
+import { SimilarityLandscape } from "@/components/ComparisonGraphics";
 
 const TABS = ["overview", "research", "evidence", "requirements", "passport"] as const;
 type Tab = (typeof TABS)[number];
@@ -521,7 +522,10 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
             description="Start a research run. When it completes, comparable projects and their source pages appear here."
           />
         ) : (
-          <ul className="space-y-2.5">
+          <>
+          <SimilarityLandscape projects={data.similar} />
+          <Link to={`/similarity?project=${encodeURIComponent(data.project.id)}`} className="mt-3 inline-flex text-xs font-medium text-forest underline underline-offset-4">Compare extracted projects side by side</Link>
+          <ul className="mt-4 space-y-2.5">
             {[...data.similar]
               .sort((a, b) => b.similarity_score - a.similarity_score)
               .map((project) => (
@@ -532,6 +536,7 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
                 />
               ))}
           </ul>
+          </>
         )}
         <InfoNote tone="cream" className="mt-3">
           The relevance signal is a ranking aid computed by the backend. It is not an originality
