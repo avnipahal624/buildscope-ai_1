@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 12937)
-Total output lines: 1142
-
 import {
   api,
   errorMessage,
@@ -566,7 +563,107 @@ function ResearchTab({ data, onReload }: { data: Data; onReload: () => void }) {
                   <p className="mt-1 text-[0.64rem] leading-4 text-muted-foreground">{opportunity.rationale}</p>
                 )}
                 <p className="mt-2 text-[0.58rem] text-forest/45">
-                  {opportunity.linked_need_ids.length} linked need(s) · {opportunity.linked_project…937 tokens truncated…oups that matter before
+                  {opportunity.linked_need_ids.length} linked need(s) · {opportunity.linked_project_ids.length} comparable project(s)
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
+function EvidenceTab({ data, onReload }: { data: Data; onReload: () => void }) {
+  const [stakeholderJobId, rememberStakeholderJob] = useRememberedJob(data.project.id, "stakeholders");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needFilter, setNeedFilter] = useState<string | null>(null);
+
+  const confirmed = data.stakeholders.filter((stakeholder) => stakeholder.status === "confirmed");
+  const shownEvidence = needFilter ? data.evidence.filter((item) => item.need_id === needFilter) : data.evidence;
+
+  const addStakeholder = async () => {
+    if (name.trim().length < 2) return;
+    setAdding(true);
+    setError(null);
+    try {
+      await api.addStakeholder(data.project.id, { name: name.trim(), description: description.trim() });
+      setName("");
+      setDescription("");
+      toast.success("Stakeholder group added.");
+      onReload();
+    } catch (addError) {
+      setError(errorMessage(addError));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const identify = async () => {
+    setIdentifying(true);
+    setError(null);
+    try {
+      const groups = await api.identifyStakeholders(data.project.id);
+      toast.success(`${groups.length} stakeholder group(s) suggested. Review and confirm them before analysis.`);
+      onReload();
+    } catch (identifyError) {
+      setError(errorMessage(identifyError));
+    } finally {
+      setIdentifying(false);
+    }
+  };
+
+  const setStatus = async (stakeholder: Stakeholder, status: "confirmed" | "rejected") => {
+    setError(null);
+    try {
+      await api.updateStakeholder(stakeholder.id, { status });
+      onReload();
+    } catch (statusError) {
+      setError(errorMessage(statusError));
+    }
+  };
+
+  const startAnalysis = async () => {
+    setStarting(true);
+    setError(null);
+    try {
+      const job = await api.startStakeholderAnalysis(data.project.id);
+      rememberStakeholderJob(job.job_id);
+      toast.success("Stakeholder analysis started.");
+    } catch (startError) {
+      setError(errorMessage(startError));
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+        <SectionCard title="Stakeholder groups" icon={Users} eyebrow="Who has the problem?">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void identify()} disabled={identifying}>
+              {identifying ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+              {identifying ? "Identifying" : "Suggest groups with AI"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-full bg-forest"
+              onClick={() => void startAnalysis()}
+              disabled={starting || confirmed.length === 0}
+            >
+              {starting ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <Search className="size-3.5" aria-hidden />}
+              {starting ? "Starting" : "Analyse confirmed groups"}
+            </Button>
+          </div>
+          <p className="mt-2 text-[0.65rem] leading-4 text-muted-foreground">
+            AI suggestions are not confirmed stakeholders. Confirm the groups that matter before
             starting need analysis. {confirmed.length} confirmed.
           </p>
 
