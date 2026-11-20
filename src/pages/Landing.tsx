@@ -471,8 +471,8 @@ export default function Landing() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                title: "No accounts in this backend",
-                body: "The deployed FastAPI service has no authentication or per-user ownership yet. BuildScope labels the workspace as shared instead of pretending otherwise.",
+                title: "Private investigations",
+                body: "The workspace now requires an account and scopes investigations to the authenticated owner. Public landing content remains readable without sign-in.",
               },
               {
                 title: "No fabricated research",
