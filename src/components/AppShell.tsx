@@ -8,6 +8,7 @@ import {
   CircleHelp,
   Compass,
   FolderKanban,
+  GitCompareArrows,
   Github,
   LayoutDashboard,
   Menu,
@@ -17,6 +18,8 @@ import {
   RefreshCw,
   Search,
   Server,
+  ShieldCheck,
+  CircleHelp,
   Sun,
   TrendingUp,
   Wifi,
@@ -48,6 +51,8 @@ const NAV = [
       { to: "/radar", label: "Hackathon Radar", icon: Radar },
       { to: "/projects", label: "Projects", icon: FolderKanban },
       { to: "/prior-art", label: "Prior Art Lab", icon: Github },
+      { to: "/similarity", label: "Similarity Intelligence", icon: TrendingUp },
+      { to: "/competitors", label: "Competitor Analysis", icon: GitCompareArrows },
     ],
   },
   {
@@ -55,6 +60,8 @@ const NAV = [
     items: [
       { to: "/progress", label: "Research Progress", icon: TrendingUp },
       { to: "/method", label: "Method & Limits", icon: BookOpenCheck },
+      { to: "/evidence", label: "Evidence Ledger", icon: ShieldCheck },
+      { to: "/validation", label: "Problem Validation", icon: CircleHelp },
     ],
   },
 ];
